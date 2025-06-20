@@ -1,17 +1,17 @@
-import React, { useEffect, useState } from "react";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import React, { useState } from "react";
 import {
-  ScrollView,
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  TextInput,
-  FlatList,
   Dimensions,
+  FlatList,
   Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
-import { PieChart, BarChart } from "react-native-chart-kit";
+import { BarChart, PieChart } from "react-native-chart-kit";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -24,7 +24,7 @@ const AdminHeader = () => (
     />
     <View>
       <Text style={styles.welcomeText}>Welcome Back,</Text>
-      <Text style={styles.adminName}>Zarrar Shah</Text>
+      <Text style={styles.adminName}>Reyan Iqbal </Text>
     </View>
   </View>
 );
