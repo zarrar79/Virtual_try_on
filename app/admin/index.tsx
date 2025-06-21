@@ -1,17 +1,17 @@
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
-  Dimensions,
-  FlatList,
-  Image,
   ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
   View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  TextInput,
+  FlatList,
+  Dimensions,
+  Image,
 } from "react-native";
-import { BarChart, PieChart } from "react-native-chart-kit";
+import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
+import { PieChart, BarChart } from "react-native-chart-kit";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -24,7 +24,7 @@ const AdminHeader = () => (
     />
     <View>
       <Text style={styles.welcomeText}>Welcome Back,</Text>
-      <Text style={styles.adminName}>Reyan Iqbal </Text>
+      <Text style={styles.adminName}>Zarrar Shah</Text>
     </View>
   </View>
 );
@@ -33,9 +33,12 @@ const AdminHeader = () => (
 const CreateProductForm = ({ onAddProduct }) => {
   const [product, setProduct] = useState({
     name: "",
+    brand: "",
     category: "",
     price: "",
     quantity: "",
+    sku: "",
+    imageUrl: "",
     description: "",
   });
 
@@ -48,9 +51,12 @@ const CreateProductForm = ({ onAddProduct }) => {
       onAddProduct(product);
       setProduct({
         name: "",
+        brand: "",
         category: "",
         price: "",
         quantity: "",
+        sku: "",
+        imageUrl: "",
         description: "",
       });
     }
@@ -59,46 +65,110 @@ const CreateProductForm = ({ onAddProduct }) => {
   return (
     <View style={styles.card}>
       <Text style={styles.cardText}>Add New Product</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Product Name"
-        value={product.name}
-        onChangeText={(text) => handleChange("name", text)}
-        placeholderTextColor="#aaa"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Category"
-        value={product.category}
-        onChangeText={(text) => handleChange("category", text)}
-        placeholderTextColor="#aaa"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Price"
-        value={product.price}
-        onChangeText={(text) => handleChange("price", text)}
-        keyboardType="numeric"
-        placeholderTextColor="#aaa"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Quantity"
-        value={product.quantity}
-        onChangeText={(text) => handleChange("quantity", text)}
-        keyboardType="numeric"
-        placeholderTextColor="#aaa"
-      />
-      <TextInput
-        style={[styles.input, { height: 80 }]}
-        placeholder="Description"
-        value={product.description}
-        onChangeText={(text) => handleChange("description", text)}
-        multiline
-        placeholderTextColor="#aaa"
-      />
+
+      {/* Row 1 */}
+      <View style={styles.row}>
+        <View style={styles.col}>
+          <Text style={styles.label}>Product Name</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. Wireless Mouse"
+            value={product.name}
+            onChangeText={(text) => handleChange("name", text)}
+            placeholderTextColor="#aaa"
+          />
+        </View>
+        <View style={styles.col}>
+          <Text style={styles.label}>Brand</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. Logitech"
+            value={product.brand}
+            onChangeText={(text) => handleChange("brand", text)}
+            placeholderTextColor="#aaa"
+          />
+        </View>
+      </View>
+
+      {/* Row 2 */}
+      <View style={styles.row}>
+        <View style={styles.col}>
+          <Text style={styles.label}>Category</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. Accessories"
+            value={product.category}
+            onChangeText={(text) => handleChange("category", text)}
+            placeholderTextColor="#aaa"
+          />
+        </View>
+        <View style={styles.col}>
+          <Text style={styles.label}>SKU</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. SKU123"
+            value={product.sku}
+            onChangeText={(text) => handleChange("sku", text)}
+            placeholderTextColor="#aaa"
+          />
+        </View>
+      </View>
+
+      {/* Row 3 */}
+      <View style={styles.row}>
+        <View style={styles.col}>
+          <Text style={styles.label}>Price</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. 2999"
+            value={product.price}
+            onChangeText={(text) => handleChange("price", text)}
+            keyboardType="numeric"
+            placeholderTextColor="#aaa"
+          />
+        </View>
+        <View style={styles.col}>
+          <Text style={styles.label}>Quantity</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. 50"
+            value={product.quantity}
+            onChangeText={(text) => handleChange("quantity", text)}
+            keyboardType="numeric"
+            placeholderTextColor="#aaa"
+          />
+        </View>
+      </View>
+
+      {/* Row 4 */}
+      <View style={styles.col}>
+        <Text style={styles.label}>Image URL</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="https://example.com/image.jpg"
+          value={product.imageUrl}
+          onChangeText={(text) => handleChange("imageUrl", text)}
+          placeholderTextColor="#aaa"
+        />
+      </View>
+
+      {/* Row 5 */}
+      <View style={styles.col}>
+        <Text style={styles.label}>Description</Text>
+        <TextInput
+          style={[styles.input, { height: 80 }]}
+          placeholder="Short product description"
+          multiline
+          value={product.description}
+          onChangeText={(text) => handleChange("description", text)}
+          placeholderTextColor="#aaa"
+        />
+      </View>
+
       <TouchableOpacity style={styles.addBtn} onPress={handleAdd}>
-        <Text style={{ color: "#fff", fontWeight: "bold" }}>Add Product</Text>
+        <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
+          Add Product
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -114,9 +184,9 @@ const ProductsList = ({ products }) => (
       renderItem={({ item }) => (
         <View style={{ marginBottom: 10 }}>
           <Text style={{ color: "#eee", fontWeight: "bold" }}>{item.name}</Text>
-          <Text style={{ color: "#ccc" }}>Category: {item.category}</Text>
+          <Text style={{ color: "#ccc" }}>Brand: {item.brand}</Text>
           <Text style={{ color: "#ccc" }}>
-            Price: Rs. {item.price} | Qty: {item.quantity}
+            Category: {item.category} | Price: Rs. {item.price} | Qty: {item.quantity}
           </Text>
           <Text style={{ color: "#999" }}>{item.description}</Text>
         </View>
@@ -163,13 +233,11 @@ const AnalyticsTab = () => {
     labelColor: () => "#ccc",
     strokeWidth: 2,
     barPercentage: 0.7,
-    useShadowColorFromDataset: false,
   };
 
   return (
     <View style={styles.card}>
       <Text style={styles.cardText}>Analytics Overview</Text>
-
       <Text style={styles.chartLabel}>Pie Chart:</Text>
       <PieChart
         data={pieData}
@@ -181,7 +249,6 @@ const AnalyticsTab = () => {
         paddingLeft={"15"}
         absolute
       />
-
       <Text style={styles.chartLabel}>Bar Chart:</Text>
       <BarChart
         data={barData}
@@ -197,30 +264,7 @@ const AnalyticsTab = () => {
   );
 };
 
-// Tab Configs
-const tabs = [
-  {
-    id: "create",
-    label: "Create Product",
-    icon: () => <Feather name="plus-circle" size={20} color="white" />,
-  },
-  {
-    id: "products",
-    label: "Products",
-    icon: () => (
-      <MaterialCommunityIcons name="basket" size={20} color="white" />
-    ),
-  },
-  {
-    id: "analytics",
-    label: "Analytics",
-    icon: () => (
-      <MaterialCommunityIcons name="chart-bar" size={20} color="white" />
-    ),
-  },
-];
-
-// Main Screen
+// Main Admin Screen
 export default function AdminScreen() {
   const [activeTab, setActiveTab] = useState("create");
   const [products, setProducts] = useState([]);
@@ -235,26 +279,32 @@ export default function AdminScreen() {
       <Text style={styles.title}>Admin Dashboard</Text>
 
       <View style={styles.tabContainer}>
-        {tabs.map((tab) => (
+        {["create", "products", "analytics"].map((tab) => (
           <TouchableOpacity
-            key={tab.id}
-            onPress={() => setActiveTab(tab.id)}
+            key={tab}
+            onPress={() => setActiveTab(tab)}
             style={[
               styles.tabButton,
-              activeTab === tab.id ? styles.activeTab : styles.inactiveTab,
+              activeTab === tab ? styles.activeTab : styles.inactiveTab,
             ]}
           >
             <View style={styles.tabContent}>
-              {tab.icon()}
-              <Text style={styles.tabLabel}>{tab.label}</Text>
+              {tab === "create" && <Feather name="plus-circle" size={20} color="white" />}
+              {tab === "products" && (
+                <MaterialCommunityIcons name="basket" size={20} color="white" />
+              )}
+              {tab === "analytics" && (
+                <MaterialCommunityIcons name="chart-bar" size={20} color="white" />
+              )}
+              <Text style={styles.tabLabel}>
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </Text>
             </View>
           </TouchableOpacity>
         ))}
       </View>
 
-      {activeTab === "create" && (
-        <CreateProductForm onAddProduct={handleAddProduct} />
-      )}
+      {activeTab === "create" && <CreateProductForm onAddProduct={handleAddProduct} />}
       {activeTab === "products" && <ProductsList products={products} />}
       {activeTab === "analytics" && <AnalyticsTab />}
     </ScrollView>
@@ -335,9 +385,6 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 24,
     elevation: 2,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
   cardText: {
     color: "#f5f5f5",
@@ -345,13 +392,28 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: 14,
   },
+  row: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 16,
+    flexWrap: "wrap",
+  },
+  col: {
+    flex: 1,
+    minWidth: "47%",
+    marginBottom: 10,
+  },
+  label: {
+    color: "#ccc",
+    marginBottom: 6,
+    fontSize: 14,
+  },
   input: {
     backgroundColor: "#2e2e2e",
     borderRadius: 8,
     padding: 12,
     color: "#fff",
     fontSize: 16,
-    marginBottom: 14,
     borderWidth: 1,
     borderColor: "#4ade80",
   },
@@ -360,6 +422,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 8,
     alignItems: "center",
+    marginTop: 10,
   },
   chartLabel: {
     color: "#ccc",

@@ -2,7 +2,8 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import {
-  ImageBackground,
+  Dimensions,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -18,114 +19,144 @@ export default function Signup() {
   const router = useRouter();
 
   return (
-    <ImageBackground
-      source={require('../../assets/images/banner.png')}
-      style={styles.background}
-      resizeMode="cover"
-    >
+    <View style={styles.container}>
       <StatusBar style="light" translucent backgroundColor="transparent" />
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
-      >
-        <SafeAreaView style={styles.safeArea}>
-          <ScrollView contentContainerStyle={styles.scrollView} keyboardShouldPersistTaps="handled">
-            <View style={styles.overlay}>
-              <Text style={styles.heading}>Signup</Text>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Full Name</Text>
-                <TextInput
-                  placeholder="John Doe"
-                  placeholderTextColor="#aaa"
-                  style={styles.input}
-                />
-              </View>
+      {/* Left Side - Form */}
+      <View style={styles.leftContainer}>
+        <KeyboardAvoidingView
+          style={styles.keyboardAvoiding}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
+        >
+          <SafeAreaView style={styles.safeArea}>
+            <ScrollView contentContainerStyle={styles.scrollView} keyboardShouldPersistTaps="handled">
+              <View style={styles.formWrapper}>
+                <Text style={styles.heading}>Signup</Text>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Email</Text>
-                <TextInput
-                  placeholder="john_39@gmail.com"
-                  placeholderTextColor="#aaa"
-                  style={styles.input}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-              </View>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Full Name</Text>
+                  <TextInput placeholder="John Doe" placeholderTextColor="#aaa" style={styles.input} />
+                </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Password</Text>
-                <TextInput
-                  placeholder="********"
-                  placeholderTextColor="#aaa"
-                  secureTextEntry
-                  style={styles.input}
-                />
-              </View>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Email</Text>
+                  <TextInput
+                    placeholder="john_39@gmail.com"
+                    placeholderTextColor="#aaa"
+                    style={styles.input}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Confirm Password</Text>
-                <TextInput
-                  placeholder="********"
-                  placeholderTextColor="#aaa"
-                  secureTextEntry
-                  style={styles.input}
-                />
-              </View>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Password</Text>
+                  <TextInput
+                    placeholder="********"
+                    placeholderTextColor="#aaa"
+                    secureTextEntry
+                    style={styles.input}
+                  />
+                </View>
 
-              <Pressable
-                style={({ pressed }) => [
-                  styles.button,
-                  pressed ? styles.whiteButton : styles.redButton,
-                ]}
-                onPress={() => console.log('Signing up...')}
-              >
-                <Text
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Confirm Password</Text>
+                  <TextInput
+                    placeholder="********"
+                    placeholderTextColor="#aaa"
+                    secureTextEntry
+                    style={styles.input}
+                  />
+                </View>
+
+                <Pressable
                   style={({ pressed }) => [
-                    styles.buttonText,
-                    pressed ? styles.redText : styles.whiteText,
+                    styles.button,
+                    pressed ? styles.whiteButton : styles.redButton,
                   ]}
+                  onPress={() => console.log('Signing up...')}
                 >
-                  Signup
-                </Text>
-              </Pressable>
+                  <Text
+                    style={({ pressed }) => [
+                      styles.buttonText,
+                      pressed ? styles.redText : styles.whiteText,
+                    ]}
+                  >
+                    Signup
+                  </Text>
+                </Pressable>
 
-              <Pressable onPress={() => router.push('/login')}>
-                <Text style={styles.toggleText}>
-                  Already have an account? <Text style={styles.toggleLink}>Login</Text>
-                </Text>
-              </Pressable>
-            </View>
-          </ScrollView>
-        </SafeAreaView>
-      </KeyboardAvoidingView>
-    </ImageBackground>
+                <Pressable onPress={() => router.push('/auth')}>
+                  <Text style={styles.toggleText}>
+                    Already have an account? <Text style={styles.toggleLink}>Login</Text>
+                  </Text>
+                </Pressable>
+              </View>
+            </ScrollView>
+          </SafeAreaView>
+        </KeyboardAvoidingView>
+      </View>
+
+      {/* Right Side - Image */}
+      <View style={styles.rightContainer}>
+        <Image
+          source={require('../../assets/images/admin.jpg')}
+          style={styles.image}
+          resizeMode="cover"
+        />
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  background: { flex: 1 },
-  safeArea: { flex: 1 },
+  container: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  leftContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center', // center content horizontally
+  },
+  rightContainer: {
+    flex: 1,
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  keyboardAvoiding: {
+    flex: 1,
+    width: '100%',
+  },
+  safeArea: {
+    flex: 1,
+  },
   scrollView: {
     flexGrow: 1,
     justifyContent: 'center',
+    alignItems: 'center', // center scroll content horizontally
+    paddingHorizontal: 20,
   },
-  overlay: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
+  formWrapper: {
+    width : '100%',
     backgroundColor: 'rgba(0,0,0,0.4)',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center', // center internal fields
   },
   heading: {
     fontSize: 32,
     fontWeight: 'bold',
     color: '#fff',
-    alignSelf: 'center',
     marginBottom: 30,
   },
   inputGroup: {
     marginBottom: 14,
+    width: '70%',
   },
   label: {
     color: '#fff',
@@ -141,20 +172,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   button: {
+    width: '70%',
     paddingVertical: 15,
-    paddingHorizontal: 60,
     borderRadius: 9,
     marginVertical: 24,
-    width: '100%',
     alignItems: 'center',
   },
   redButton: {
-    backgroundColor: '#db3022',
-    borderColor: '#fff',
+    backgroundColor: '#22c55e',
   },
   whiteButton: {
     backgroundColor: '#fff',
-    borderColor: '#db3022',
   },
   buttonText: {
     fontSize: 18,
@@ -172,6 +200,6 @@ const styles = StyleSheet.create({
   },
   toggleLink: {
     fontWeight: 'bold',
-    color: '#db3022',
+    color: '#22c55e',
   },
 });
