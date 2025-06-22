@@ -15,6 +15,7 @@ import { PieChart, BarChart } from "react-native-chart-kit";
 
 const screenWidth = Dimensions.get("window").width;
 
+
 // Admin Header
 const AdminHeader = () => (
   <View style={styles.headerContainer}>
@@ -72,7 +73,7 @@ const CreateProductForm = ({ onAddProduct }) => {
           <Text style={styles.label}>Product Name</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g. Wireless Mouse"
+            placeholder="e.g. Summer Dress"
             value={product.name}
             onChangeText={(text) => handleChange("name", text)}
             placeholderTextColor="#aaa"
@@ -82,7 +83,7 @@ const CreateProductForm = ({ onAddProduct }) => {
           <Text style={styles.label}>Brand</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g. Logitech"
+            placeholder="e.g. Zara"
             value={product.brand}
             onChangeText={(text) => handleChange("brand", text)}
             placeholderTextColor="#aaa"
@@ -96,7 +97,7 @@ const CreateProductForm = ({ onAddProduct }) => {
           <Text style={styles.label}>Category</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g. Accessories"
+            placeholder="e.g. Women's Wear"
             value={product.category}
             onChangeText={(text) => handleChange("category", text)}
             placeholderTextColor="#aaa"
@@ -106,7 +107,7 @@ const CreateProductForm = ({ onAddProduct }) => {
           <Text style={styles.label}>SKU</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g. SKU123"
+            placeholder="e.g. DR1234"
             value={product.sku}
             onChangeText={(text) => handleChange("sku", text)}
             placeholderTextColor="#aaa"
@@ -120,7 +121,7 @@ const CreateProductForm = ({ onAddProduct }) => {
           <Text style={styles.label}>Price</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g. 2999"
+            placeholder="e.g. 4999"
             value={product.price}
             onChangeText={(text) => handleChange("price", text)}
             keyboardType="numeric"
@@ -131,7 +132,7 @@ const CreateProductForm = ({ onAddProduct }) => {
           <Text style={styles.label}>Quantity</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g. 50"
+            placeholder="e.g. 25"
             value={product.quantity}
             onChangeText={(text) => handleChange("quantity", text)}
             keyboardType="numeric"
@@ -145,7 +146,7 @@ const CreateProductForm = ({ onAddProduct }) => {
         <Text style={styles.label}>Image URL</Text>
         <TextInput
           style={styles.input}
-          placeholder="https://example.com/image.jpg"
+          placeholder="https://example.com/dress.jpg"
           value={product.imageUrl}
           onChangeText={(text) => handleChange("imageUrl", text)}
           placeholderTextColor="#aaa"
@@ -157,7 +158,7 @@ const CreateProductForm = ({ onAddProduct }) => {
         <Text style={styles.label}>Description</Text>
         <TextInput
           style={[styles.input, { height: 80 }]}
-          placeholder="Short product description"
+          placeholder="e.g. Light cotton dress for summer"
           multiline
           value={product.description}
           onChangeText={(text) => handleChange("description", text)}
