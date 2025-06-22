@@ -24,7 +24,7 @@ const AdminHeader = () => (
     />
     <View>
       <Text style={styles.welcomeText}>Welcome Back,</Text>
-      <Text style={styles.adminName}>Zarrar Shah</Text>
+      <Text style={styles.adminName}>Reyan Iqbal</Text>
     </View>
   </View>
 );
@@ -276,7 +276,7 @@ export default function AdminScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <AdminHeader />
-      <Text style={styles.title}>Admin Dashboard</Text>
+      <Text style={styles.title}>Welcome Back, Admin</Text>
 
       <View style={styles.tabContainer}>
         {["create", "products", "analytics"].map((tab) => (

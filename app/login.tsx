@@ -31,8 +31,11 @@ export default function Login() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
       >
         <SafeAreaView style={styles.safeArea}>
-          <ScrollView contentContainerStyle={styles.scrollView} keyboardShouldPersistTaps="handled">
-            <View style={styles.overlay}>
+          <View style={styles.overlay}>
+            <ScrollView
+              contentContainerStyle={styles.scrollView}
+              keyboardShouldPersistTaps="handled"
+            >
               <Text style={styles.heading}>Login</Text>
 
               <View style={styles.inputGroup}>
@@ -63,14 +66,16 @@ export default function Login() {
                 ]}
                 onPress={() => console.log('Logging in...')}
               >
-                <Text
-                  style={({ pressed }) => [
-                    styles.buttonText,
-                    pressed ? styles.redText : styles.whiteText,
-                  ]}
-                >
-                  Login
-                </Text>
+                {({ pressed }) => (
+                  <Text
+                    style={[
+                      styles.buttonText,
+                      pressed ? styles.redText : styles.whiteText,
+                    ]}
+                  >
+                    Login
+                  </Text>
+                )}
               </Pressable>
 
               <Pressable onPress={() => router.push('/signup')}>
@@ -78,8 +83,8 @@ export default function Login() {
                   Don't have an account? <Text style={styles.toggleLink}>Signup</Text>
                 </Text>
               </Pressable>
-            </View>
-          </ScrollView>
+            </ScrollView>
+          </View>
         </SafeAreaView>
       </KeyboardAvoidingView>
     </ImageBackground>
@@ -94,7 +99,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   overlay: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     padding: 20,
     backgroundColor: 'rgba(0,0,0,0.4)',

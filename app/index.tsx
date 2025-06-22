@@ -23,7 +23,7 @@ export default function Home() {
       <StatusBar style="light" translucent backgroundColor="transparent" />
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.overlay}>
-          <Text style={styles.heading}>Try your Choice</Text>
+          <Text style={styles.heading}>Style Your Way</Text>
 
           {/* Login Button */}
           <View style={styles.buttonWrapper}>
@@ -103,12 +103,12 @@ const styles = StyleSheet.create({
   background: { flex: 1 },
   safeArea: { flex: 1 },
   overlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
+  ...StyleSheet.absoluteFillObject,
+  justifyContent: 'center',
+  alignItems: 'center',
+  padding: 20,
+  backgroundColor: 'rgba(0,0,0,0.4)',
+},
   heading: {
     fontSize: 32,
     fontWeight: 'bold',

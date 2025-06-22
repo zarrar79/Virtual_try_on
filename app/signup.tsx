@@ -30,8 +30,11 @@ export default function Signup() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
       >
         <SafeAreaView style={styles.safeArea}>
-          <ScrollView contentContainerStyle={styles.scrollView} keyboardShouldPersistTaps="handled">
-            <View style={styles.overlay}>
+          <View style={styles.overlay}>
+            <ScrollView
+              contentContainerStyle={styles.scrollView}
+              keyboardShouldPersistTaps="handled"
+            >
               <Text style={styles.heading}>Signup</Text>
 
               <View style={styles.inputGroup}>
@@ -81,14 +84,16 @@ export default function Signup() {
                 ]}
                 onPress={() => console.log('Signing up...')}
               >
-                <Text
-                  style={({ pressed }) => [
-                    styles.buttonText,
-                    pressed ? styles.redText : styles.whiteText,
-                  ]}
-                >
-                  Signup
-                </Text>
+                {({ pressed }) => (
+                  <Text
+                    style={[
+                      styles.buttonText,
+                      pressed ? styles.redText : styles.whiteText,
+                    ]}
+                  >
+                    Signup
+                  </Text>
+                )}
               </Pressable>
 
               <Pressable onPress={() => router.push('/login')}>
@@ -96,8 +101,8 @@ export default function Signup() {
                   Already have an account? <Text style={styles.toggleLink}>Login</Text>
                 </Text>
               </Pressable>
-            </View>
-          </ScrollView>
+            </ScrollView>
+          </View>
         </SafeAreaView>
       </KeyboardAvoidingView>
     </ImageBackground>
@@ -112,7 +117,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   overlay: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     padding: 20,
     backgroundColor: 'rgba(0,0,0,0.4)',
