@@ -1,4 +1,6 @@
-import React from 'react';
+import { navigate } from 'expo-router/build/global-state/routing';
+
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -10,12 +12,25 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 
 export default function Login() {
   const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleLogin = () => {
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Error', 'Please fill in both email and password fields');
+      return;
+    }
+    console.log("home");
+    
+        router.push('/root_home/home');
+  };
 
   return (
     <ImageBackground
@@ -46,6 +61,8 @@ export default function Login() {
                   keyboardType="email-address"
                   autoCapitalize="none"
                   style={styles.input}
+                  value={email}
+                  onChangeText={setEmail}
                 />
               </View>
 
@@ -56,6 +73,8 @@ export default function Login() {
                   placeholderTextColor="#aaa"
                   secureTextEntry
                   style={styles.input}
+                  value={password}
+                  onChangeText={setPassword}
                 />
               </View>
 
@@ -64,7 +83,7 @@ export default function Login() {
                   styles.button,
                   pressed ? styles.whiteButton : styles.redButton,
                 ]}
-                onPress={() => console.log('Logging in...')}
+                onPress={handleLogin}
               >
                 {({ pressed }) => (
                   <Text
