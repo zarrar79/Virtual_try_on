@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const User = require('./models/User');
 
 // Connect to MongoDB
-mongoose.connect('mongodb+srv://shahzarrar79:7jdYdSM56HoTKnMG@virtualtryon.uxs5xxz.mongodb.net/virtualtryon?retryWrites=true&w=majority&appName=VirtualTryOn', {
+mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
