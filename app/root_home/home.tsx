@@ -1,4 +1,4 @@
-import React from 'react';
+import { CommonActions, useNavigation } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -7,8 +7,10 @@ import {
   Image,
   TouchableOpacity,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import React from 'react';
 
 const dummyDresses = [
   {
@@ -56,12 +58,31 @@ const dummyDresses = [
 ];
 
 export default function Home() {
-  const router = useRouter();
+  const navigation = useNavigation();
+
+  const handleLogout = () => {
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+      {
+        text: 'Logout',
+        style: 'destructive',
+        onPress: () => {
+          navigation.dispatch(
+            CommonActions.reset({
+              index: 0,
+              routes: [{ name: 'Login' }],
+            })
+          );
+        },
+      },
+    ]);
+  };
 
   const renderDress = ({ item }: { item: typeof dummyDresses[0] }) => (
-    <TouchableOpacity 
-      style={styles.productCard}
-    >
+    <TouchableOpacity style={styles.productCard}>
       <Image source={item.image} style={styles.productImage} />
       <View style={styles.productInfo}>
         <Text style={styles.productName}>{item.name}</Text>
@@ -75,6 +96,9 @@ export default function Home() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Fashion Dresses</Text>
+        <TouchableOpacity onPress={handleLogout}>
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -87,7 +111,6 @@ export default function Home() {
   );
 }
 
-// Keep all your existing styles the same
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -96,11 +119,19 @@ const styles = StyleSheet.create({
   header: {
     padding: 30,
     backgroundColor: '#db3022',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: 'white',
+  },
+  logoutText: {
+    fontSize: 16,
+    color: 'white',
+    textDecorationLine: 'underline',
   },
   productList: {
     padding: 8,
@@ -139,20 +170,5 @@ const styles = StyleSheet.create({
   productDescription: {
     fontSize: 14,
     color: '#666',
-  },
-  bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 12,
-    backgroundColor: 'white',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-  },
-  navItem: {
-    alignItems: 'center',
-  },
-  navText: {
-    fontSize: 14,
-    color: '#333',
   },
 });

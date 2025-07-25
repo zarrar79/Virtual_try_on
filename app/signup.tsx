@@ -1,4 +1,5 @@
 import React from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -15,7 +16,46 @@ import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 
 export default function Signup() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const router = useRouter();
+
+  function signUp(data: any) {
+    const { name, email, password, confirmPassword } = data;
+
+    if (!name || !email || !password || !confirmPassword) {
+      alert('Please fill in all fields');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      alert('Passwords do not match');
+      return;
+    }
+
+    fetch('http://10.0.0.8:5000/user/signup', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ name, email, password })
+    })
+      .then(async response => {
+        const resData = await response.json();
+        if (response.status === 200 || response.status === 201) {
+          alert('User added successfully!');
+          console.log(resData);
+        } else {
+          alert('Signup failed: ' + (resData.error || resData.message));
+        }
+      })
+      .catch(error => {
+        alert('Network error: ' + error.message);
+      });
+  }
+
 
   return (
     <ImageBackground
@@ -43,6 +83,8 @@ export default function Signup() {
                   placeholder="John Doe"
                   placeholderTextColor="#aaa"
                   style={styles.input}
+                  value={name}
+                  onChangeText={setName}
                 />
               </View>
 
@@ -54,6 +96,8 @@ export default function Signup() {
                   style={styles.input}
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  value={email}
+                  onChangeText={setEmail}
                 />
               </View>
 
@@ -64,6 +108,8 @@ export default function Signup() {
                   placeholderTextColor="#aaa"
                   secureTextEntry
                   style={styles.input}
+                  value={password}
+                  onChangeText={setPassword}
                 />
               </View>
 
@@ -74,6 +120,8 @@ export default function Signup() {
                   placeholderTextColor="#aaa"
                   secureTextEntry
                   style={styles.input}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
                 />
               </View>
 
@@ -82,7 +130,7 @@ export default function Signup() {
                   styles.button,
                   pressed ? styles.whiteButton : styles.redButton,
                 ]}
-                onPress={() => console.log('Signing up...')}
+                onPress={() => signUp({ name, email, password, confirmPassword })}
               >
                 {({ pressed }) => (
                   <Text
