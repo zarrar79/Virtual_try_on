@@ -1,6 +1,7 @@
 import { navigate } from 'expo-router/build/global-state/routing';
 
 import React, { useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
   Text,
@@ -21,16 +22,56 @@ export default function Login() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [token,setToken] = useState('');
 
-  const handleLogin = () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please fill in both email and password fields');
-      return;
-    }
-    console.log("home");
+  AsyncStorage.getItem('token')
+  .then(token => {
+    setToken(token ?? '');
+    // console.log("JWT Token:", token);
+  })
+  .catch(err => {
+    console.error("Error reading token:", err);
+  });
+
+
+
+  const handleLogin = async () => {
+  if (!email.trim() || !password.trim()) {
+    Alert.alert('Error', 'Please fill in both email and password fields');
+    return;
+  }
+
+  try {
+    console.log(token,'====');
     
-        router.push('/root_home/home');
-  };
+    
+    // if(token) {
+    //   Alert.alert('Already Logged In', 'Please Log Out First!') 
+    //   return;
+    // }
+    const response = await fetch('http://10.0.0.8:5000/user/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.success) {
+      await AsyncStorage.setItem('token', data.token);
+      router.push('/root_home/home');
+    } else {
+      Alert.alert('Login Failed', data.message || 'Invalid credentials');
+    }
+
+  } catch (error){
+    console.error('Login error:', error);
+    Alert.alert('Error', 'Network error or server not reachable');
+  }
+};
+
 
   return (
     <ImageBackground
