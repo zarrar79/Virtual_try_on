@@ -169,7 +169,7 @@ app.put("/products/:id", upload.single("image"), async (req, res) => {
 app.delete("/products/:id", async (req, res) => {
   try {
     const deleted = await Product.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ message: "Product not found" });
+    if (!deleted) return res.status(404).json({ message: "Product not found " });
     res.json({ message: "Product deleted" });
   } catch (err) {
     res.status(500).json({ error: err.message });
