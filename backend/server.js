@@ -5,6 +5,8 @@ const dotenv = require("dotenv");
 const User = require('./models/User')
 const bcrypt = require("bcrypt");
 const jwt = require('jsonwebtoken');
+const authMiddleware = require('./middleware/authMiddleWare');
+
 dotenv.config();
 
 const app = express();
@@ -42,7 +44,7 @@ app.post("/user/login", async (req, res) => {
         {expiresIn : process.env.JWT_EXPIRES_IN}
     );
 
-    console.log(token);
+    // console.log(token);
     
 
     return res.status(200).json({
@@ -89,6 +91,7 @@ app.post("/user/signup", async (req, res) => {
     res.status(500).json({ message: "Something went wrong" });
   }
 });
+
 
 
 const PORT = process.env.PORT || 5000;

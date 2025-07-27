@@ -1,4 +1,3 @@
-// app/_layout.tsx
 import { Stack } from 'expo-router';
 
 export default function RootLayout() {
@@ -6,12 +5,12 @@ export default function RootLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" /> {/* Login screen - no header */}
       <Stack.Screen 
-        name="home" 
+        name="root_home/home" 
         options={{
-          headerShown: true,
+          headerShown: false,
           title: 'Home',
           headerBackVisible: false
-        }} 
+        }}
       />
     </Stack>
   );
