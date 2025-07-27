@@ -1,22 +1,23 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  ScrollView,
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
-  TextInput,
   FlatList,
-  Dimensions,
   Image,
+  ScrollView,
+  Dimensions,
+  Alert,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import { PieChart, BarChart } from "react-native-chart-kit";
 
+const API_BASE = "http://10.0.0.8:5000/products";
 const screenWidth = Dimensions.get("window").width;
 
-
-// Admin Header
 const AdminHeader = () => (
   <View style={styles.headerContainer}>
     <Image
@@ -30,36 +31,81 @@ const AdminHeader = () => (
   </View>
 );
 
-// Create Product Form
-const CreateProductForm = ({ onAddProduct }) => {
+// Form Component
+const CreateProductForm = ({ onProductCreated }) => {
   const [product, setProduct] = useState({
     name: "",
     brand: "",
     category: "",
-    price: "",
-    quantity: "",
+    price: 0,
+    quantity: 0,
     sku: "",
-    imageUrl: "",
     description: "",
   });
+  const [image, setImage] = useState(null);
 
   const handleChange = (key, value) => {
     setProduct((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleAdd = () => {
-    if (product.name.trim()) {
-      onAddProduct(product);
-      setProduct({
-        name: "",
-        brand: "",
-        category: "",
-        price: "",
-        quantity: "",
-        sku: "",
-        imageUrl: "",
-        description: "",
+  const pickImage = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      alert("Permission is required!");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setImage(result.assets[0]);
+    }
+  };
+
+  const handleAddProduct = async () => {
+    if (!product.name || !image) {
+      Alert.alert("Validation", "Please enter product name and select image.");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      if (product.image && product.image.uri) {
+        formData.append('image', {
+          uri: product.image.uri,
+          type: product.image.type || 'image/jpeg',
+          name: product.image.fileName || 'upload.jpg',
+        });
+      } else {
+        console.warn("Image not selected yet.");
+      }
+      const response = await fetch(API_BASE, {
+        method: "POST",
+        body: formData,
       });
+      const data = await response.json();
+      if (response.ok) {
+        Alert.alert("Success", "Product added!");
+        onProductCreated(data);
+        setProduct({
+          name: "",
+          brand: "",
+          category: "",
+          price: 0,
+          quantity: 0,
+          sku: "",
+          description: "",
+        });
+        setImage(null);
+      } else {
+        Alert.alert("Error", data.message || "Failed to add product.");
+      }
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Error", "Something went wrong.");
     }
   };
 
@@ -67,166 +113,95 @@ const CreateProductForm = ({ onAddProduct }) => {
     <View style={styles.card}>
       <Text style={styles.cardText}>Add New Product</Text>
 
-      {/* Row 1 */}
-      <View style={styles.row}>
-        <View style={styles.col}>
-          <Text style={styles.label}>Product Name</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g. Summer Dress"
-            value={product.name}
-            onChangeText={(text) => handleChange("name", text)}
-            placeholderTextColor="#aaa"
-          />
-        </View>
-        <View style={styles.col}>
-          <Text style={styles.label}>Brand</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g. Zara"
-            value={product.brand}
-            onChangeText={(text) => handleChange("brand", text)}
-            placeholderTextColor="#aaa"
-          />
-        </View>
-      </View>
-
-      {/* Row 2 */}
-      <View style={styles.row}>
-        <View style={styles.col}>
-          <Text style={styles.label}>Category</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g. Women's Wear"
-            value={product.category}
-            onChangeText={(text) => handleChange("category", text)}
-            placeholderTextColor="#aaa"
-          />
-        </View>
-        <View style={styles.col}>
-          <Text style={styles.label}>SKU</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g. DR1234"
-            value={product.sku}
-            onChangeText={(text) => handleChange("sku", text)}
-            placeholderTextColor="#aaa"
-          />
-        </View>
-      </View>
-
-      {/* Row 3 */}
-      <View style={styles.row}>
-        <View style={styles.col}>
-          <Text style={styles.label}>Price</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g. 4999"
-            value={product.price}
-            onChangeText={(text) => handleChange("price", text)}
-            keyboardType="numeric"
-            placeholderTextColor="#aaa"
-          />
-        </View>
-        <View style={styles.col}>
-          <Text style={styles.label}>Quantity</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g. 25"
-            value={product.quantity}
-            onChangeText={(text) => handleChange("quantity", text)}
-            keyboardType="numeric"
-            placeholderTextColor="#aaa"
-          />
-        </View>
-      </View>
-
-      {/* Row 4 */}
-      <View style={styles.col}>
-        <Text style={styles.label}>Image URL</Text>
+      {/* Inputs */}
+      {["name", "brand", "category", "price", "quantity"].map((field) => (
         <TextInput
+          key={field}
           style={styles.input}
-          placeholder="https://example.com/dress.jpg"
-          value={product.imageUrl}
-          onChangeText={(text) => handleChange("imageUrl", text)}
+          placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
           placeholderTextColor="#aaa"
+          keyboardType={["price", "quantity"].includes(field) ? "numeric" : "default"}
+          value={product[field]}
+          onChangeText={(text) => handleChange(field, text)}
         />
-      </View>
+      ))}
 
-      {/* Row 5 */}
-      <View style={styles.col}>
-        <Text style={styles.label}>Description</Text>
-        <TextInput
-          style={[styles.input, { height: 80 }]}
-          placeholder="e.g. Light cotton dress for summer"
-          multiline
-          value={product.description}
-          onChangeText={(text) => handleChange("description", text)}
-          placeholderTextColor="#aaa"
-        />
-      </View>
+      <TextInput
+        style={[styles.input, { height: 80 }]}
+        placeholder="Description"
+        multiline
+        value={product.description}
+        onChangeText={(text) => handleChange("description", text)}
+        placeholderTextColor="#aaa"
+      />
 
-      <TouchableOpacity style={styles.addBtn} onPress={handleAdd}>
-        <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
-          Add Product
-        </Text>
+      <TouchableOpacity style={styles.addBtn} onPress={pickImage}>
+        <Text style={{ color: "#fff" }}>{image ? "Change Image" : "Select Image"}</Text>
+      </TouchableOpacity>
+      {image && <Image source={{ uri: image.uri }} style={{ width: 100, height: 100, marginTop: 10 }} />}
+
+      <TouchableOpacity style={styles.addBtn} onPress={handleAddProduct}>
+        <Text style={{ color: "#fff", fontWeight: "bold" }}>Add Product</Text>
       </TouchableOpacity>
     </View>
   );
 };
 
-// Product List
-const ProductsList = ({ products }) => (
-  <View style={styles.card}>
-    <Text style={styles.cardText}>Product List:</Text>
-    <FlatList
-      data={products}
-      keyExtractor={(item, index) => index.toString()}
-      renderItem={({ item }) => (
-        <View style={{ marginBottom: 10 }}>
-          <Text style={{ color: "#eee", fontWeight: "bold" }}>{item.name}</Text>
-          <Text style={{ color: "#ccc" }}>Brand: {item.brand}</Text>
-          <Text style={{ color: "#ccc" }}>
-            Category: {item.category} | Price: Rs. {item.price} | Qty: {item.quantity}
-          </Text>
-          <Text style={{ color: "#999" }}>{item.description}</Text>
-        </View>
-      )}
-    />
-  </View>
-);
+// Products List
+const ProductsList = ({ refresh }) => {
+  const [products, setProducts] = useState([]);
 
-// Analytics Tab
+  const fetchProducts = async () => {
+    try {
+      const res = await fetch(API_BASE);
+      const data = await res.json();
+      setProducts(data.products || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, [refresh]);
+
+  return (
+    <View style={styles.card}>
+      <Text style={styles.cardText}>Product List:</Text>
+      <FlatList
+        data={products}
+        keyExtractor={(item) => item._id}
+        renderItem={({ item }) => (
+          <View style={{ marginBottom: 12 }}>
+            <Text style={{ color: "#eee", fontWeight: "bold" }}>{item.name}</Text>
+            <Text style={{ color: "#ccc" }}>
+              Brand: {item.brand} | Price: Rs. {item.price}
+            </Text>
+            <Text style={{ color: "#ccc" }}>Qty: {item.quantity} | SKU: {item.sku}</Text>
+            <Text style={{ color: "#aaa" }}>{item.description}</Text>
+            {item.imageUrl && (
+              <Image
+                source={{ uri: item.imageUrl }}
+                style={{ width: 100, height: 100, marginTop: 5 }}
+              />
+            )}
+          </View>
+        )}
+      />
+    </View>
+  );
+};
+
 const AnalyticsTab = () => {
   const pieData = [
-    {
-      name: "Category A",
-      population: 40,
-      color: "#34d399",
-      legendFontColor: "#fff",
-      legendFontSize: 14,
-    },
-    {
-      name: "Category B",
-      population: 30,
-      color: "#3b82f6",
-      legendFontColor: "#fff",
-      legendFontSize: 14,
-    },
-    {
-      name: "Category C",
-      population: 30,
-      color: "#f59e0b",
-      legendFontColor: "#fff",
-      legendFontSize: 14,
-    },
+    { name: "Category A", population: 40, color: "#34d399", legendFontColor: "#fff", legendFontSize: 14 },
+    { name: "Category B", population: 30, color: "#3b82f6", legendFontColor: "#fff", legendFontSize: 14 },
+    { name: "Category C", population: 30, color: "#f59e0b", legendFontColor: "#fff", legendFontSize: 14 },
   ];
-
   const barData = {
     labels: ["Jan", "Feb", "Mar", "Apr", "May"],
     datasets: [{ data: [14, 80, 45, 60, 34] }],
   };
-
   const chartConfig = {
     backgroundGradientFrom: "#1e1e1e",
     backgroundGradientTo: "#1e1e1e",
@@ -239,40 +214,16 @@ const AnalyticsTab = () => {
   return (
     <View style={styles.card}>
       <Text style={styles.cardText}>Analytics Overview</Text>
-      <Text style={styles.chartLabel}>Pie Chart:</Text>
-      <PieChart
-        data={pieData}
-        width={screenWidth - 40}
-        height={200}
-        chartConfig={chartConfig}
-        accessor={"population"}
-        backgroundColor={"transparent"}
-        paddingLeft={"15"}
-        absolute
-      />
-      <Text style={styles.chartLabel}>Bar Chart:</Text>
-      <BarChart
-        data={barData}
-        width={screenWidth - 40}
-        height={220}
-        chartConfig={chartConfig}
-        verticalLabelRotation={0}
-        showValuesOnTopOfBars
-        style={{ marginTop: 16 }}
-        fromZero
-      />
+      <PieChart data={pieData} width={screenWidth - 40} height={200} chartConfig={chartConfig} accessor={"population"} backgroundColor={"transparent"} paddingLeft={"15"} absolute />
+      <BarChart data={barData} width={screenWidth - 40} height={220} chartConfig={chartConfig} style={{ marginTop: 16 }} fromZero />
     </View>
   );
 };
 
-// Main Admin Screen
+// Main Admin Component
 export default function AdminScreen() {
   const [activeTab, setActiveTab] = useState("create");
-  const [products, setProducts] = useState([]);
-
-  const handleAddProduct = (product) => {
-    setProducts((prev) => [...prev, product]);
-  };
+  const [refreshProducts, setRefreshProducts] = useState(false);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -284,29 +235,20 @@ export default function AdminScreen() {
           <TouchableOpacity
             key={tab}
             onPress={() => setActiveTab(tab)}
-            style={[
-              styles.tabButton,
-              activeTab === tab ? styles.activeTab : styles.inactiveTab,
-            ]}
+            style={[styles.tabButton, activeTab === tab ? styles.activeTab : styles.inactiveTab]}
           >
             <View style={styles.tabContent}>
               {tab === "create" && <Feather name="plus-circle" size={20} color="white" />}
-              {tab === "products" && (
-                <MaterialCommunityIcons name="basket" size={20} color="white" />
-              )}
-              {tab === "analytics" && (
-                <MaterialCommunityIcons name="chart-bar" size={20} color="white" />
-              )}
-              <Text style={styles.tabLabel}>
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </Text>
+              {tab === "products" && <MaterialCommunityIcons name="basket" size={20} color="white" />}
+              {tab === "analytics" && <MaterialCommunityIcons name="chart-bar" size={20} color="white" />}
+              <Text style={styles.tabLabel}>{tab.charAt(0).toUpperCase() + tab.slice(1)}</Text>
             </View>
           </TouchableOpacity>
         ))}
       </View>
 
-      {activeTab === "create" && <CreateProductForm onAddProduct={handleAddProduct} />}
-      {activeTab === "products" && <ProductsList products={products} />}
+      {activeTab === "create" && <CreateProductForm onProductCreated={() => setRefreshProducts(!refreshProducts)} />}
+      {activeTab === "products" && <ProductsList refresh={refreshProducts} />}
       {activeTab === "analytics" && <AnalyticsTab />}
     </ScrollView>
   );
