@@ -1,4 +1,4 @@
-import { CommonActions, useNavigation } from '@react-navigation/native';
+import { useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,9 +8,10 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Alert,
+  BackHandler,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import React from 'react';
+import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const dummyDresses = [
   {
@@ -57,25 +58,34 @@ const dummyDresses = [
   },
 ];
 
-export default function Home() {
-  const navigation = useNavigation();
+export default function Home(){
+  useEffect(() => {
+    const handleBackPress = () => {
+      // Optional: Confirm before exiting the app
+      Alert.alert('Exit App', 'Do you want to exit the app?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Exit', onPress: () => BackHandler.exitApp() },
+      ]);
+      return true; // Prevent default back action
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      handleBackPress
+    );
+
+    return () => backHandler.remove(); // Clean up listener on unmount
+  }, []);
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
-      {
-        text: 'Cancel',
-        style: 'cancel',
-      },
+      { text: 'Cancel', style: 'cancel' },
       {
         text: 'Logout',
         style: 'destructive',
-        onPress: () => {
-          navigation.dispatch(
-            CommonActions.reset({
-              index: 0,
-              routes: [{ name: 'Login' }],
-            })
-          );
+        onPress: async () => {
+          await AsyncStorage.removeItem('token');
+          router.replace('/'); // Navigate back to login screen
         },
       },
     ]);
