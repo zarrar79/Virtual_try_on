@@ -60,7 +60,7 @@ app.post("/user/signup", async (req, res) => {
       });
   } catch (err) {
     console.error("Signup Error:", err);
-    res.status(500).json({ message: "Something went wrong" });
+    res.status(500).json({ message: "Something went wrong " });
   }
 });
 
