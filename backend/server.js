@@ -5,17 +5,21 @@ const dotenv = require("dotenv");
 const multer = require("multer");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const fs = require("fs");
+const path = require("path");
 
 const User = require("./models/User");
 const Product = require("./models/Product");
 const authMiddleware = require("./middleware/authMiddleWare");
+const { log } = require("console");
 
 dotenv.config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-
+app.use(express.json({ limit: '10mb' })); // or higher if needed
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Serve static files (uploaded images)
 app.use("/uploads", express.static("uploads"));
 
@@ -29,15 +33,15 @@ mongoose
   .catch((err) => console.log("MongoDB connection error:", err));
 
 // ========================= Multer Setup ========================= //
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/"); // Folder must exist
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  },
-});
-const upload = multer({ storage });
+// const storage = multer.diskStorage({
+//   destination: (req, file, cb) => {
+//     cb(null, "uploads/"); // Folder must exist
+//   },
+//   filename: (req, file, cb) => {
+//     cb(null, `${Date.now()}-${file.originalname}`);
+//   },
+// });
+const upload = multer({ dest : 'uploads/' });
 
 // ========================= User Routes ========================= //
 app.post("/user/signup", async (req, res) => {
@@ -101,28 +105,52 @@ app.post("/user/login", async (req, res) => {
 // ========================= Product Routes ========================= //
 
 // CREATE product with image
-app.post("/products", upload.single("image"), async (req, res) => {
-
-  const productData = {
-    name: req.body.name,
-    category: req.body.category,
-    price: Number(req.body.price),
-    quantity: Number(req.body.quantity),
-    description: req.body.description,
-    imageUrl: req.body.image,
-  };
-
+app.post("/products", async (req, res) => {
   try {
-    const { name, description, price } = req.body;
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+    const { image, name, brand, category, price, quantity, description } = req.body;
+    console.log(req.body);
+    
+    // Check for required fields
+    if (!image || !name || !category || !quantity) {
+      return res.status(400).json({
+        error: "Missing required fields: name, category, quantity, image",
+      });
+    }
 
-    const product = new Product({ name, description, price, image: imageUrl });
+    // Extract base64 data from data URI
+    const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
+    const buffer = Buffer.from(base64Data, "base64");
+
+    // Define filename and path
+    const filename = `${Date.now()}.png`; // or jpg
+    const uploadPath = path.join(__dirname, "uploads", filename);
+
+    // Save file to disk
+    fs.writeFileSync(uploadPath, buffer);
+
+    // Create image URL path
+    const imageUrl = `/uploads/${filename}`; // this path should match how your frontend accesses the file
+
+    // Save product to DB
+    const product = new Product({
+      name,
+      brand,
+      category,
+      price: Number(price),
+      quantity: Number(quantity),
+      description,
+      imageUrl,
+    });
+
     const saved = await product.save();
     res.status(201).json(saved);
+
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong: " + err.message });
   }
 });
+
 
 // READ all products
 app.get("/products", async (req, res) => {
@@ -178,4 +206,4 @@ app.delete("/products/:id", async (req, res) => {
 
 // ========================= Server Start ========================= //
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port  ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on port a  ${PORT}`));

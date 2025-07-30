@@ -1,4 +1,7 @@
 import React, { useEffect, useState } from "react";
+import * as FileSystem from 'expo-file-system';
+import * as ImageManipulator from 'expo-image-manipulator';
+import image from '../backend/'
 import {
   View,
   Text,
@@ -15,7 +18,7 @@ import * as ImagePicker from "expo-image-picker";
 import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import { PieChart, BarChart } from "react-native-chart-kit";
 
-const API_BASE = "http://10.0.0.8:5000/products";
+const API_BASE = "http://10.0.0.6:5000/products";
 const screenWidth = Dimensions.get("window").width;
 
 const AdminHeader = () => (
@@ -58,11 +61,27 @@ const CreateProductForm = ({ onProductCreated }) => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 1,
+      base64: true
     });
 
     if (!result.canceled) {
-      setImage(result.assets[0]);
+      const selectedAsset = result.assets[0];
+      setImage({
+        uri: selectedAsset.uri,
+        base64: selectedAsset.base64,
+        type: selectedAsset.type || "image/jpeg",
+        name: selectedAsset.fileName || "photo.jpg"
+      });
     }
+  };
+
+  const compressImage = async (uri) => {
+    const result = await ImageManipulator.manipulateAsync(
+      uri,
+      [{ resize: { width: 800 } }],
+      { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+    );
+    return `data:image/jpeg;base64,${result.base64}`;
   };
 
   const handleAddProduct = async () => {
@@ -70,26 +89,25 @@ const CreateProductForm = ({ onProductCreated }) => {
       Alert.alert("Validation", "Please enter product name and select image.");
       return;
     }
-
+    const base64Image = await compressImage(image.uri);
     try {
-      const formData = new FormData();
-      if (product.image && product.image.uri) {
-        formData.append('image', {
-          uri: product.image.uri,
-          type: product.image.type || 'image/jpeg',
-          name: product.image.fileName || 'upload.jpg',
-        });
-      } else {
-        console.warn("Image not selected yet.");
-      }
-      const response = await fetch(API_BASE, {
+      const payload = {
+        image: base64Image,
+        ...product
+      };
+
+      const response = await fetch("http://10.0.0.6:5000/products", {
         method: "POST",
-        body: formData,
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
       });
+
       const data = await response.json();
+
       if (response.ok) {
         Alert.alert("Success", "Product added!");
-        onProductCreated(data);
         setProduct({
           name: "",
           brand: "",
@@ -100,6 +118,7 @@ const CreateProductForm = ({ onProductCreated }) => {
           description: "",
         });
         setImage(null);
+        onProductCreated();
       } else {
         Alert.alert("Error", data.message || "Failed to add product.");
       }
@@ -121,7 +140,7 @@ const CreateProductForm = ({ onProductCreated }) => {
           placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
           placeholderTextColor="#aaa"
           keyboardType={["price", "quantity"].includes(field) ? "numeric" : "default"}
-          value={product[field]}
+          value={product[field]?.toString()}
           onChangeText={(text) => handleChange(field, text)}
         />
       ))}
@@ -155,10 +174,13 @@ const ProductsList = ({ refresh }) => {
     try {
       const res = await fetch(API_BASE);
       const data = await res.json();
-      setProducts(data.products || []);
+      setProducts(data || []);
     } catch (err) {
       console.error(err);
     }
+
+    
+    
   };
 
   useEffect(() => {
@@ -177,12 +199,12 @@ const ProductsList = ({ refresh }) => {
             <Text style={{ color: "#ccc" }}>
               Brand: {item.brand} | Price: Rs. {item.price}
             </Text>
-            <Text style={{ color: "#ccc" }}>Qty: {item.quantity} | SKU: {item.sku}</Text>
+            <Text style={{ color: "#ccc" }}>Qty: {item.quantity}</Text>
             <Text style={{ color: "#aaa" }}>{item.description}</Text>
             {item.imageUrl && (
               <Image
-                source={{ uri: item.imageUrl }}
-                style={{ width: 100, height: 100, marginTop: 5 }}
+                source={{ uri: `http://10.0.0.6:5000${item.imageUrl}` }}
+                style={{ width: 100, height: 100 }}
               />
             )}
           </View>
