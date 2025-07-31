@@ -1,13 +1,9 @@
 import React, { useEffect, useState } from "react";
-import * as FileSystem from 'expo-file-system';
-import * as ImageManipulator from 'expo-image-manipulator';
-import image from '../backend/'
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   FlatList,
   Image,
   ScrollView,
@@ -15,26 +11,27 @@ import {
   Alert,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
 import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import { PieChart, BarChart } from "react-native-chart-kit";
+import { tw } from "./utils/tw"; // Adjust path as needed
 
-const API_BASE = "http://10.0.0.6:5000/products";
+const API_BASE = "http://10.0.0.4:5000/products";
 const screenWidth = Dimensions.get("window").width;
 
 const AdminHeader = () => (
-  <View style={styles.headerContainer}>
+  <View style={tw("flex-row items-center mb-5")}>
     <Image
       source={{ uri: "https://i.pravatar.cc/100?img=3" }}
-      style={styles.profileImage}
+      style={tw("w-12 h-12 rounded-full mr-3 border-2 border-emerald-500")}
     />
     <View>
-      <Text style={styles.welcomeText}>Welcome Back,</Text>
-      <Text style={styles.adminName}>Reyan Iqbal</Text>
+      <Text style={tw("text-gray-300 text-sm")}>Welcome Back,</Text>
+      <Text style={tw("text-white text-lg font-bold")}>Reyan Iqbal</Text>
     </View>
   </View>
 );
 
-// Form Component
 const CreateProductForm = ({ onProductCreated }) => {
   const [product, setProduct] = useState({
     name: "",
@@ -52,8 +49,8 @@ const CreateProductForm = ({ onProductCreated }) => {
   };
 
   const pickImage = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissionResult.granted) {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
       alert("Permission is required!");
       return;
     }
@@ -61,16 +58,16 @@ const CreateProductForm = ({ onProductCreated }) => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 1,
-      base64: true
+      base64: true,
     });
 
     if (!result.canceled) {
-      const selectedAsset = result.assets[0];
+      const selected = result.assets[0];
       setImage({
-        uri: selectedAsset.uri,
-        base64: selectedAsset.base64,
-        type: selectedAsset.type || "image/jpeg",
-        name: selectedAsset.fileName || "photo.jpg"
+        uri: selected.uri,
+        base64: selected.base64,
+        type: selected.type || "image/jpeg",
+        name: selected.fileName || "photo.jpg",
       });
     }
   };
@@ -89,19 +86,15 @@ const CreateProductForm = ({ onProductCreated }) => {
       Alert.alert("Validation", "Please enter product name and select image.");
       return;
     }
-    const base64Image = await compressImage(image.uri);
-    try {
-      const payload = {
-        image: base64Image,
-        ...product
-      };
 
-      const response = await fetch("http://10.0.0.6:5000/products", {
+    const base64Image = await compressImage(image.uri);
+
+    try {
+      const payload = { image: base64Image, ...product };
+      const response = await fetch(API_BASE, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -129,14 +122,13 @@ const CreateProductForm = ({ onProductCreated }) => {
   };
 
   return (
-    <View style={styles.card}>
-      <Text style={styles.cardText}>Add New Product</Text>
+    <View style={tw("bg-neutral-900 rounded-xl p-5 mb-6")}>
+      <Text style={tw("text-white text-lg font-bold mb-4")}>Add New Product</Text>
 
-      {/* Inputs */}
       {["name", "brand", "category", "price", "quantity"].map((field) => (
         <TextInput
           key={field}
-          style={styles.input}
+          style={tw("bg-zinc-800 text-white px-3 py-2 rounded-md border border-emerald-400 mb-3")}
           placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
           placeholderTextColor="#aaa"
           keyboardType={["price", "quantity"].includes(field) ? "numeric" : "default"}
@@ -146,7 +138,7 @@ const CreateProductForm = ({ onProductCreated }) => {
       ))}
 
       <TextInput
-        style={[styles.input, { height: 80 }]}
+        style={tw("bg-zinc-800 text-white px-3 py-2 rounded-md border border-emerald-400 mb-3 h-20")}
         placeholder="Description"
         multiline
         value={product.description}
@@ -154,57 +146,53 @@ const CreateProductForm = ({ onProductCreated }) => {
         placeholderTextColor="#aaa"
       />
 
-      <TouchableOpacity style={styles.addBtn} onPress={pickImage}>
-        <Text style={{ color: "#fff" }}>{image ? "Change Image" : "Select Image"}</Text>
+      <TouchableOpacity style={tw("bg-emerald-600 py-3 rounded-md items-center")} onPress={pickImage}>
+        <Text style={tw("text-white")}>{image ? "Change Image" : "Select Image"}</Text>
       </TouchableOpacity>
-      {image && <Image source={{ uri: image.uri }} style={{ width: 100, height: 100, marginTop: 10 }} />}
 
-      <TouchableOpacity style={styles.addBtn} onPress={handleAddProduct}>
-        <Text style={{ color: "#fff", fontWeight: "bold" }}>Add Product</Text>
+      {image && <Image source={{ uri: image.uri }} style={tw("w-24 h-24 mt-3")} />}
+
+      <TouchableOpacity style={tw("bg-emerald-600 py-3 rounded-md mt-3 items-center")} onPress={handleAddProduct}>
+        <Text style={tw("text-white font-bold")}>Add Product</Text>
       </TouchableOpacity>
     </View>
   );
 };
 
-// Products List
 const ProductsList = ({ refresh }) => {
   const [products, setProducts] = useState([]);
 
-  const fetchProducts = async () => {
-    try {
-      const res = await fetch(API_BASE);
-      const data = await res.json();
-      setProducts(data || []);
-    } catch (err) {
-      console.error(err);
-    }
-
-    
-    
-  };
-
   useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch(API_BASE);
+        const data = await res.json();
+        setProducts(data || []);
+      } catch (err) {
+        console.error(err);
+      }
+    };
     fetchProducts();
   }, [refresh]);
 
   return (
-    <View style={styles.card}>
-      <Text style={styles.cardText}>Product List:</Text>
+    <View style={tw("bg-neutral-900 rounded-xl p-5 mb-6")}>
+      <Text style={tw("text-white text-lg font-bold mb-4")}>Product List</Text>
       <FlatList
         data={products}
         keyExtractor={(item) => item._id}
         renderItem={({ item }) => (
-          <View style={{ marginBottom: 12 }}>
-            <Text style={{ color: "#eee", fontWeight: "bold" }}>{item.name}</Text>
-            <Text style={{ color: "#ccc" }}>
+          <View style={tw("mb-3 flex items-center")}>
+            <Text style={tw("text-white font-bold")}>{item.name}</Text>
+            <Text style={tw("text-gray-300")}>
               Brand: {item.brand} | Price: Rs. {item.price}
             </Text>
-            <Text style={{ color: "#ccc" }}>Qty: {item.quantity}</Text>
-            <Text style={{ color: "#aaa" }}>{item.description}</Text>
+            <Text style={tw("text-gray-300")}>Qty: {item.quantity}</Text>
+            <Text style={tw("text-gray-400")}>{item.description}</Text>
             {item.imageUrl && (
               <Image
-                source={{ uri: `http://10.0.0.6:5000${item.imageUrl}` }}
-                style={{ width: 100, height: 100 }}
+                source={{ uri: `http://10.0.0.4:5000${item.imageUrl}`}}
+                style={tw("w-24 h-24 mt-2")}
               />
             )}
           </View>
@@ -234,166 +222,65 @@ const AnalyticsTab = () => {
   };
 
   return (
-    <View style={styles.card}>
-      <Text style={styles.cardText}>Analytics Overview</Text>
-      <PieChart data={pieData} width={screenWidth - 40} height={200} chartConfig={chartConfig} accessor={"population"} backgroundColor={"transparent"} paddingLeft={"15"} absolute />
-      <BarChart data={barData} width={screenWidth - 40} height={220} chartConfig={chartConfig} style={{ marginTop: 16 }} fromZero />
+    <View style={tw("bg-neutral-900 rounded-xl p-5 mb-6")}>
+      <Text style={tw("text-white text-lg font-bold mb-4")}>Analytics Overview</Text>
+      <PieChart
+        data={pieData}
+        width={screenWidth - 40}
+        height={200}
+        chartConfig={chartConfig}
+        accessor={"population"}
+        backgroundColor={"transparent"}
+        paddingLeft={"15"}
+        absolute
+      />
+      <BarChart
+        data={barData}
+        width={screenWidth - 40}
+        height={220}
+        chartConfig={chartConfig}
+        style={{ marginTop: 16 }}
+        fromZero
+      />
     </View>
   );
 };
 
-// Main Admin Component
 export default function AdminScreen() {
   const [activeTab, setActiveTab] = useState("create");
   const [refreshProducts, setRefreshProducts] = useState(false);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={[tw("bg-black min-h-full"), { padding: 24, paddingTop: 50 }]}>
       <AdminHeader />
-      <Text style={styles.title}>Welcome Back, Admin</Text>
+      <Text style={tw("text-green-500 text-4xl font-extrabold text-center mb-7")}>
+        Welcome Back, Admin
+      </Text>
 
-      <View style={styles.tabContainer}>
+      <View style={tw("flex-row justify-center flex-wrap mb-7")}>
         {["create", "products", "analytics"].map((tab) => (
           <TouchableOpacity
             key={tab}
             onPress={() => setActiveTab(tab)}
-            style={[styles.tabButton, activeTab === tab ? styles.activeTab : styles.inactiveTab]}
+            style={tw(`px-5 py-3 mx-2 my-2 rounded-lg ${activeTab === tab ? "bg-green-700" : "bg-gray-800"}`)}
           >
-            <View style={styles.tabContent}>
+            <View style={tw("flex-row items-center")}>
               {tab === "create" && <Feather name="plus-circle" size={20} color="white" />}
               {tab === "products" && <MaterialCommunityIcons name="basket" size={20} color="white" />}
               {tab === "analytics" && <MaterialCommunityIcons name="chart-bar" size={20} color="white" />}
-              <Text style={styles.tabLabel}>{tab.charAt(0).toUpperCase() + tab.slice(1)}</Text>
+              <Text style={tw("text-white text-base ml-2 font-semibold")}>
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </Text>
             </View>
           </TouchableOpacity>
         ))}
       </View>
 
-      {activeTab === "create" && <CreateProductForm onProductCreated={() => setRefreshProducts(!refreshProducts)} />}
+      {activeTab === "create" && (
+        <CreateProductForm onProductCreated={() => setRefreshProducts(!refreshProducts)} />
+      )}
       {activeTab === "products" && <ProductsList refresh={refreshProducts} />}
       {activeTab === "analytics" && <AnalyticsTab />}
     </ScrollView>
   );
 }
-
-// Styles
-const styles = StyleSheet.create({
-  container: {
-    padding: 24,
-    paddingTop: 50,
-    backgroundColor: "#121212",
-    minHeight: "100%",
-  },
-  headerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  profileImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 12,
-    borderWidth: 2,
-    borderColor: "#10b981",
-  },
-  welcomeText: {
-    color: "#ccc",
-    fontSize: 14,
-  },
-  adminName: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  title: {
-    fontSize: 36,
-    fontWeight: "900",
-    color: "#22c55e",
-    textAlign: "center",
-    marginBottom: 28,
-    letterSpacing: 1.2,
-  },
-  tabContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginBottom: 28,
-    flexWrap: "wrap",
-  },
-  tabButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    marginHorizontal: 8,
-    marginVertical: 8,
-  },
-  activeTab: {
-    backgroundColor: "#16a34a",
-    elevation: 3,
-  },
-  inactiveTab: {
-    backgroundColor: "#1f2937",
-  },
-  tabContent: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  tabLabel: {
-    color: "white",
-    fontSize: 16,
-    marginLeft: 10,
-    fontWeight: "600",
-  },
-  card: {
-    backgroundColor: "#1e1e1e",
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 24,
-    elevation: 2,
-  },
-  cardText: {
-    color: "#f5f5f5",
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 14,
-  },
-  row: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 16,
-    flexWrap: "wrap",
-  },
-  col: {
-    flex: 1,
-    minWidth: "47%",
-    marginBottom: 10,
-  },
-  label: {
-    color: "#ccc",
-    marginBottom: 6,
-    fontSize: 14,
-  },
-  input: {
-    backgroundColor: "#2e2e2e",
-    borderRadius: 8,
-    padding: 12,
-    color: "#fff",
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: "#4ade80",
-  },
-  addBtn: {
-    backgroundColor: "#10b981",
-    padding: 14,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 10,
-  },
-  chartLabel: {
-    color: "#ccc",
-    marginTop: 18,
-    marginBottom: 8,
-    fontSize: 16,
-    fontWeight: "600",
-  },
-});
