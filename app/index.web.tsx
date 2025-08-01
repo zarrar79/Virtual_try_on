@@ -16,7 +16,7 @@ import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import { PieChart, BarChart } from "react-native-chart-kit";
 import { tw } from "./utils/tw"; // Adjust path as needed
 
-const API_BASE = "http://10.0.0.4:5000/products";
+const API_BASE = "http://10.0.0.7:5000/products";
 const screenWidth = Dimensions.get("window").width;
 
 const AdminHeader = () => (
@@ -32,7 +32,7 @@ const AdminHeader = () => (
   </View>
 );
 
-const CreateProductForm = ({ onProductCreated }) => {
+const CreateProductForm = ({ onProductCreated, isEditing, editProductData, onProductUpdated, cancelEdit }) => {
   const [product, setProduct] = useState({
     name: "",
     brand: "",
@@ -43,6 +43,27 @@ const CreateProductForm = ({ onProductCreated }) => {
     description: "",
   });
   const [image, setImage] = useState(null);
+
+  useEffect(() => {
+    if (isEditing && editProductData) {
+      setProduct(editProductData);
+      if (editProductData.imageUrl) {
+        setImage({ uri: `http://10.0.0.7:5000${editProductData.imageUrl}` });
+      }
+    }
+    else{
+      setProduct({
+    name: "",
+    brand: "",
+    category: "",
+    price: 0,
+    quantity: 0,
+    sku: "",
+    description: "",
+  });
+  setImage(null);
+    }
+  }, [isEditing, editProductData]);
 
   const handleChange = (key, value) => {
     setProduct((prev) => ({ ...prev, [key]: value }));
@@ -81,26 +102,29 @@ const CreateProductForm = ({ onProductCreated }) => {
     return `data:image/jpeg;base64,${result.base64}`;
   };
 
-  const handleAddProduct = async () => {
-    if (!product.name || !image) {
-      Alert.alert("Validation", "Please enter product name and select image.");
+  const handleSubmit = async () => {
+    if (!product.name) {
+      Alert.alert("Validation", "Please enter product name.");
       return;
     }
 
-    const base64Image = await compressImage(image.uri);
+    let payload = { ...product };
+    if (image?.uri && image?.base64) {
+      const base64Image = await compressImage(image.uri);
+      payload.image = base64Image;
+    }
 
     try {
-      const payload = { image: base64Image, ...product };
-      const response = await fetch(API_BASE, {
-        method: "POST",
+      const res = await fetch(isEditing ? `${API_BASE}/${product._id}` : API_BASE, {
+        method: isEditing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
+      const data = await res.json();
 
-      if (response.ok) {
-        Alert.alert("Success", "Product added!");
+      if (res.ok) {
+        Alert.alert("Success", isEditing ? "Product updated!" : "Product added!");
         setProduct({
           name: "",
           brand: "",
@@ -111,9 +135,9 @@ const CreateProductForm = ({ onProductCreated }) => {
           description: "",
         });
         setImage(null);
-        onProductCreated();
+        isEditing ? onProductUpdated() : onProductCreated();
       } else {
-        Alert.alert("Error", data.message || "Failed to add product.");
+        Alert.alert("Error", data.message || "Failed to save product.");
       }
     } catch (err) {
       console.error(err);
@@ -123,7 +147,9 @@ const CreateProductForm = ({ onProductCreated }) => {
 
   return (
     <View style={tw("bg-neutral-900 rounded-xl p-5 mb-6")}>
-      <Text style={tw("text-white text-lg font-bold mb-4")}>Add New Product</Text>
+      <Text style={tw("text-white text-lg font-bold mb-4")}>
+        {isEditing ? "Edit Product" : "Add New Product"}
+      </Text>
 
       {["name", "brand", "category", "price", "quantity"].map((field) => (
         <TextInput
@@ -152,14 +178,20 @@ const CreateProductForm = ({ onProductCreated }) => {
 
       {image && <Image source={{ uri: image.uri }} style={tw("w-24 h-24 mt-3")} />}
 
-      <TouchableOpacity style={tw("bg-emerald-600 py-3 rounded-md mt-3 items-center")} onPress={handleAddProduct}>
-        <Text style={tw("text-white font-bold")}>Add Product</Text>
+      <TouchableOpacity style={tw("bg-emerald-600 py-3 rounded-md mt-3 items-center")} onPress={handleSubmit}>
+        <Text style={tw("text-white font-bold")}>{isEditing ? "Update Product" : "Add Product"}</Text>
       </TouchableOpacity>
+
+      {isEditing && (
+        <TouchableOpacity onPress={cancelEdit} style={tw("mt-3 items-center")}>
+          <Text style={tw("text-red-400")}>Cancel Edit</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
 
-const ProductsList = ({ refresh }) => {
+const ProductsList = ({ refresh, onEdit }) => {
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
@@ -175,6 +207,23 @@ const ProductsList = ({ refresh }) => {
     fetchProducts();
   }, [refresh]);
 
+  const handleDelete = async (item) => {
+    try {
+      const response = await fetch(`${API_BASE}/${item._id}`, {
+        method: "DELETE",
+      });
+      const data = await response.json();
+      if (response.ok) {
+        Alert.alert("Deleted", data.message);
+        setProducts((prev) => prev.filter((p) => p._id !== item._id));
+      } else {
+        Alert.alert("Error", data.message || "Delete failed");
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   return (
     <View style={tw("bg-neutral-900 rounded-xl p-5 mb-6")}>
       <Text style={tw("text-white text-lg font-bold mb-4")}>Product List</Text>
@@ -182,19 +231,34 @@ const ProductsList = ({ refresh }) => {
         data={products}
         keyExtractor={(item) => item._id}
         renderItem={({ item }) => (
-          <View style={tw("mb-3 flex items-center")}>
-            <Text style={tw("text-white font-bold")}>{item.name}</Text>
-            <Text style={tw("text-gray-300")}>
-              Brand: {item.brand} | Price: Rs. {item.price}
-            </Text>
-            <Text style={tw("text-gray-300")}>Qty: {item.quantity}</Text>
-            <Text style={tw("text-gray-400")}>{item.description}</Text>
-            {item.imageUrl && (
-              <Image
-                source={{ uri: `http://10.0.0.4:5000${item.imageUrl}`}}
-                style={tw("w-24 h-24 mt-2")}
-              />
-            )}
+          <View style={tw("mb-3")}>
+            <View style={tw("flex-row items-start gap-4 bg-gray-800 p-4 rounded-lg")}>
+              {item.imageUrl && (
+                <Image
+                  source={{ uri: `http://10.0.0.7:5000${item.imageUrl}` }}
+                  style={tw("w-24 h-24 rounded-md")}
+                  resizeMode="cover"
+                />
+              )}
+              <View style={tw("flex-1 flex-row justify-between")}>
+                <View style={tw("flex-1 pr-2")}>
+                  <Text style={tw("text-white font-bold text-lg")}>{item.name}</Text>
+                  <Text style={tw("text-gray-300")}>
+                    Brand: {item.brand} | Price: Rs. {item.price}
+                  </Text>
+                  <Text style={tw("text-gray-300")}>Qty: {item.quantity}</Text>
+                  <Text style={tw("text-gray-400")}>{item.description}</Text>
+                </View>
+                <View style={tw("items-end justify-between")}>
+                  <TouchableOpacity onPress={() => onEdit(item)}>
+                    <Text style={tw("text-blue-400 font-semibold")}>Edit</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleDelete(item)}>
+                    <Text style={tw("text-red-400 font-semibold")}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
           </View>
         )}
       />
@@ -249,6 +313,21 @@ const AnalyticsTab = () => {
 export default function AdminScreen() {
   const [activeTab, setActiveTab] = useState("create");
   const [refreshProducts, setRefreshProducts] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editProductData, setEditProductData] = useState(null);
+
+
+  const startEdit = (item) => {
+    setIsEditing(true);
+    setEditProductData(item);
+    setActiveTab("create");
+  };
+
+
+  const cancelEdit = () =>{
+    setIsEditing(false);
+    setEditProductData(null);
+  };
 
   return (
     <ScrollView contentContainerStyle={[tw("bg-black min-h-full"), { padding: 24, paddingTop: 50 }]}>
@@ -277,9 +356,18 @@ export default function AdminScreen() {
       </View>
 
       {activeTab === "create" && (
-        <CreateProductForm onProductCreated={() => setRefreshProducts(!refreshProducts)} />
+        <CreateProductForm
+          isEditing={isEditing}
+          editProductData={editProductData}
+          cancelEdit={cancelEdit}
+          onProductCreated={() => setRefreshProducts(!refreshProducts)}
+          onProductUpdated={() => {
+            cancelEdit();
+            setRefreshProducts(!refreshProducts);
+          }}
+        />
       )}
-      {activeTab === "products" && <ProductsList refresh={refreshProducts} />}
+      {activeTab === "products" && <ProductsList refresh={refreshProducts} onEdit={startEdit} />}
       {activeTab === "analytics" && <AnalyticsTab />}
     </ScrollView>
   );
