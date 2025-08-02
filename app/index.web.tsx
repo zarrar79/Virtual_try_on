@@ -51,18 +51,18 @@ const CreateProductForm = ({ onProductCreated, isEditing, editProductData, onPro
         setImage({ uri: `http://10.0.0.7:5000${editProductData.imageUrl}` });
       }
     }
-    else{
-      setProduct({
-    name: "",
-    brand: "",
-    category: "",
-    price: 0,
-    quantity: 0,
-    sku: "",
-    description: "",
-  });
-  setImage(null);
-    }
+  //   else{
+  //     setProduct({
+  //   name: "",
+  //   brand: "",
+  //   category: "",
+  //   price: 0,
+  //   quantity: 0,
+  //   sku: "",
+  //   description: "",
+  // });
+  // setImage(null);
+  //   }
   }, [isEditing, editProductData]);
 
   const handleChange = (key, value) => {
