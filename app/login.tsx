@@ -28,7 +28,7 @@ export default function Login() {
     }
 
     try {
-      const response = await fetch('http://10.0.0.8:5000/user/login', {
+      const response = await fetch('http://10.0.0.6:5000/user/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

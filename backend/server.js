@@ -10,6 +10,7 @@ const path = require("path");
 
 const User = require("./models/User");
 const Product = require("./models/Product");
+const Admin = require('./models/Admin')
 const authMiddleware = require("./middleware/authMiddleWare");
 const { log } = require("console");
 
@@ -102,10 +103,70 @@ app.post("/user/login", async (req, res) => {
   }
 });
 
+// ========================= Admin Routes =========================== //
+
+app.post("/admin/signup", async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    const existingUser = await Admin.findOne({ email });
+    if (existingUser)
+      return res.status(409).json({ message: "User already exists" });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = new Admin({ name, email, password: hashedPassword });
+    await newUser.save();
+
+    const { password: _, ...userWithoutPassword } = newUser.toObject();
+    res
+      .status(201)
+      .json({
+        message: "User registered successfully",
+        user: userWithoutPassword,
+      });
+  } catch (err) {
+    console.error("Signup Error:", err);
+    res.status(500).json({ message: "Something went wrong  " });
+  }
+});
+
+app.post("/admin/login", async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await Admin.findOne({ email });
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch)
+      return res
+        .status(401)
+        .json({ success: false, message: "Incorrect password" });
+
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || "1d" }
+    );
+
+    const { password: _, ...userWithoutPassword } = user.toObject();
+    res.status(200).json({
+      success: true,
+      message: "Login successful",
+      token,
+      user: userWithoutPassword,
+    });
+  } catch (err) {
+    console.error("Login Error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
 // ========================= Product Routes ========================= //
 
 // CREATE product with image
-app.post("/products", async (req, res) => {
+app.post("/products",authMiddleware, async (req, res) => {
   try {
     const { image, name, brand, category, price, quantity, description } = req.body;
     console.log(req.body);
@@ -163,7 +224,7 @@ app.get("/products", async (req, res) => {
 });
 
 // READ single product
-app.get("/products/:id", async (req, res) => {
+app.get("/products/:id", authMiddleware,async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ message: "Product not found" });
@@ -174,7 +235,7 @@ app.get("/products/:id", async (req, res) => {
 });
 
 // UPDATE product
-app.put("/products/:id", upload.single("image"), async (req, res) => {
+app.put("/products/:id",authMiddleware , upload.single("image"), async (req, res) => {
   try {
     const { name, description, price } = req.body;
     const updateData = { name, description, price };
@@ -194,7 +255,7 @@ app.put("/products/:id", upload.single("image"), async (req, res) => {
 });
 
 // DELETE product
-app.delete("/products/:id", async (req, res) => {
+app.delete("/products/:id", authMiddleware ,async (req, res) => {
   try {
     const deleted = await Product.findByIdAndDelete(req.params.id);
     console.log(deleted);

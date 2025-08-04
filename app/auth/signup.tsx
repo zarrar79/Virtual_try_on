@@ -1,6 +1,7 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Dimensions,
   Image,
@@ -13,16 +14,62 @@ import {
   Text,
   TextInput,
   View,
+  Alert,
 } from 'react-native';
 
 export default function Signup() {
   const router = useRouter();
 
+  // State for form fields
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  const handleSignup = async () => {
+    // if(await AsyncStorage.getItem('token'))
+    //   return alert('You are Already Logged In');
+    if (!fullName || !email || !password || !confirmPassword) {
+      Alert.alert('Error', 'Please fill all fields');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    try {
+      const response = await fetch('http://10.0.0.5:5000/admin/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: fullName,
+          email,
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        Alert.alert('Success', 'Account created successfully');
+        router.push('/auth'); // Redirect to login page
+      } else {
+        Alert.alert('Error', data.message || 'Signup failed');
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'Something went wrong');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar style="light" translucent backgroundColor="transparent" />
 
-      {/* Left Side - Form */}
       <View style={styles.leftContainer}>
         <KeyboardAvoidingView
           style={styles.keyboardAvoiding}
@@ -36,12 +83,20 @@ export default function Signup() {
 
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Full Name</Text>
-                  <TextInput placeholder="John Doe" placeholderTextColor="#aaa" style={styles.input} />
+                  <TextInput
+                    value={fullName}
+                    onChangeText={setFullName}
+                    placeholder="John Doe"
+                    placeholderTextColor="#aaa"
+                    style={styles.input}
+                  />
                 </View>
 
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Email</Text>
                   <TextInput
+                    value={email}
+                    onChangeText={setEmail}
                     placeholder="john_39@gmail.com"
                     placeholderTextColor="#aaa"
                     style={styles.input}
@@ -53,6 +108,8 @@ export default function Signup() {
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Password</Text>
                   <TextInput
+                    value={password}
+                    onChangeText={setPassword}
                     placeholder="********"
                     placeholderTextColor="#aaa"
                     secureTextEntry
@@ -63,6 +120,8 @@ export default function Signup() {
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Confirm Password</Text>
                   <TextInput
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
                     placeholder="********"
                     placeholderTextColor="#aaa"
                     secureTextEntry
@@ -75,7 +134,7 @@ export default function Signup() {
                     styles.button,
                     pressed ? styles.whiteButton : styles.redButton,
                   ]}
-                  onPress={() => console.log('Signing up...')}
+                  onPress={handleSignup}
                 >
                   <Text
                     style={({ pressed }) => [
@@ -98,7 +157,6 @@ export default function Signup() {
         </KeyboardAvoidingView>
       </View>
 
-      {/* Right Side - Image */}
       <View style={styles.rightContainer}>
         <Image
           source={require('../../assets/images/admin.jpg')}
@@ -109,6 +167,7 @@ export default function Signup() {
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {

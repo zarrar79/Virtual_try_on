@@ -35,7 +35,7 @@ export default function Signup() {
       return;
     }
 
-    fetch('http://10.0.0.8:5000/user/signup', {
+    fetch('http://10.0.0.6:5000/user/signup', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

@@ -13,6 +13,14 @@ export default function RootLayout() {
             headerBackVisible: false
           }}
         />
+        <Stack.Screen
+          name="root_home/Try"
+          options={{
+            headerShown: true,
+            title: 'Try Your Dress',
+            headerBackVisible: false
+          }}
+        />
       </Stack>
   );
 }
