@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -11,62 +11,27 @@ import {
   BackHandler,
 } from 'react-native';
 import { router } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const dummyDresses = [
-  {
-    id: '1',
-    name: 'Floral Summer Dress',
-    price: 'PKR2,499',
-    image: require('../../assets/images/img1.jpg'),
-    description: 'Lightweight floral dress perfect for summer occasions',
-  },
-  {
-    id: '2',
-    name: 'Elegant Evening Gown',
-    price: 'PKR5,999',
-    image: require('../../assets/images/img2.jpg'),
-    description: 'Stunning floor-length gown for special events',
-  },
-  {
-    id: '3',
-    name: 'Casual Cotton Dress',
-    price: 'PKR1,799',
-    image: require('../../assets/images/img3.jpg'),
-    description: 'Comfortable everyday wear with stylish design',
-  },
-  {
-    id: '4',
-    name: 'Designer Party Dress',
-    price: 'PKR4,500',
-    image: require('../../assets/images/img4.jpg'),
-    description: 'Trendy sequin dress for night outs and parties',
-  },
-  {
-    id: '5',
-    name: 'Traditional Embroidered Dress',
-    price: 'PKR6,999',
-    image: require('../../assets/images/img5.jpg'),
-    description: 'Hand-embroidered cultural dress with intricate details',
-  },
-  {
-    id: '6',
-    name: 'Office Formal Dress',
-    price: 'PKR3,200',
-    image: require('../../assets/images/img6.jpg'),
-    description: 'Professional yet fashionable work attire',
-  },
-];
+export default function Home() {
+  const [products, setProducts] = useState([]);
+  const navigation = useNavigation(); // ✅ call useNavigation here
 
-export default function Home(){
+  useEffect(() => {
+    fetch('http://10.0.0.6:5000/products')
+      .then((response) => response.json())
+      .then((data) => setProducts(data))
+      .catch((error) => console.error('Error fetching products:', error));
+  }, []);
+
   useEffect(() => {
     const handleBackPress = () => {
-      // Optional: Confirm before exiting the app
       Alert.alert('Exit App', 'Do you want to exit the app?', [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Exit', onPress: () => BackHandler.exitApp() },
       ]);
-      return true; // Prevent default back action
+      return true;
     };
 
     const backHandler = BackHandler.addEventListener(
@@ -74,7 +39,7 @@ export default function Home(){
       handleBackPress
     );
 
-    return () => backHandler.remove(); // Clean up listener on unmount
+    return () => backHandler.remove();
   }, []);
 
   const handleLogout = () => {
@@ -85,18 +50,29 @@ export default function Home(){
         style: 'destructive',
         onPress: async () => {
           await AsyncStorage.removeItem('token');
-          router.replace('/'); // Navigate back to login screen
+          router.replace('/');
         },
       },
     ]);
   };
 
-  const renderDress = ({ item }: { item: typeof dummyDresses[0] }) => (
+  // ✅ Valid hook usage: renderDress uses navigation from above
+  const renderDress = ({ item }: { item: typeof products[0] }) => (
     <TouchableOpacity style={styles.productCard}>
-      <Image source={item.image} style={styles.productImage} />
+      <Image
+        source={{ uri: `http://10.0.0.6:5000${item.imageUrl}` }}
+        style={styles.productImage}
+      />
       <View style={styles.productInfo}>
-        <Text style={styles.productName}>{item.name}</Text>
-        <Text style={styles.productPrice}>{item.price}</Text>
+        <View style={styles.productHeader}>
+          <Text style={styles.productName}>{item.name}</Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('root_home/Try', { product: item })}
+          >
+            <Text style={styles.tryText}>Try it</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.productPrice}>Rs.{item.price}.00</Text>
         <Text style={styles.productDescription}>{item.description}</Text>
       </View>
     </TouchableOpacity>
@@ -112,9 +88,9 @@ export default function Home(){
       </View>
 
       <FlatList
-        data={dummyDresses}
+        data={products}
         renderItem={renderDress}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item._id}
         contentContainerStyle={styles.productList}
       />
     </SafeAreaView>
@@ -126,6 +102,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  productHeader: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+},
+
+tryText: {
+  color: '#007BFF',
+  fontWeight: 'bold',
+},
   header: {
     padding: 30,
     backgroundColor: '#db3022',

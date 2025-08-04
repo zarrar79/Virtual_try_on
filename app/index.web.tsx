@@ -9,28 +9,98 @@ import {
   ScrollView,
   Dimensions,
   Alert,
+  Pressable,
+  StyleSheet
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import { PieChart, BarChart } from "react-native-chart-kit";
 import { tw } from "./utils/tw"; // Adjust path as needed
-
-const API_BASE = "http://10.0.0.7:5000/products";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router, useRouter } from "expo-router";
+const API_BASE = "http://10.0.0.6:5000/products";
 const screenWidth = Dimensions.get("window").width;
 
-const AdminHeader = () => (
-  <View style={tw("flex-row items-center mb-5")}>
-    <Image
-      source={{ uri: "https://i.pravatar.cc/100?img=3" }}
-      style={tw("w-12 h-12 rounded-full mr-3 border-2 border-emerald-500")}
-    />
-    <View>
-      <Text style={tw("text-gray-300 text-sm")}>Welcome Back,</Text>
-      <Text style={tw("text-white text-lg font-bold")}>Reyan Iqbal</Text>
+
+const AdminHeader = () => {
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem("token");
+      router.replace("/auth");
+    } catch (error) {
+      Alert.alert("Logout Error", "Something went wrong.");
+      console.error(error);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      {/* Profile Section */}
+      <View style={styles.profileContainer}>
+        <Image
+          source={{ uri: "https://i.pravatar.cc/100?img=3" }}
+          style={styles.avatar}
+        />
+        <View>
+          <Text style={styles.welcomeText}>Welcome Back,</Text>
+          <Text style={styles.nameText}>Reyan Iqbal</Text>
+        </View>
+      </View>
+
+      {/* Logout Button */}
+      <Pressable style={styles.logoutButton} onPress={handleLogout}>
+        <Text style={styles.logoutText}>Logout</Text>
+      </Pressable>
     </View>
-  </View>
-);
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
+    paddingHorizontal: 10,
+  },
+  profileContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 10,
+    borderWidth: 2,
+    borderColor: "#10B981",
+  },
+  welcomeText: {
+    color: "#D1D5DB",
+    fontSize: 13,
+  },
+  nameText: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  logoutButton: {
+    backgroundColor: "#EF4444",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  logoutText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+});
+
+
 
 const CreateProductForm = ({ onProductCreated, isEditing, editProductData, onProductUpdated, cancelEdit }) => {
   const [product, setProduct] = useState({
@@ -48,7 +118,7 @@ const CreateProductForm = ({ onProductCreated, isEditing, editProductData, onPro
     if (isEditing && editProductData) {
       setProduct(editProductData);
       if (editProductData.imageUrl) {
-        setImage({ uri: `http://10.0.0.7:5000${editProductData.imageUrl}` });
+        setImage({ uri: `http://10.0.0.6:5000${editProductData.imageUrl}` });
       }
     }
   //   else{
@@ -65,7 +135,7 @@ const CreateProductForm = ({ onProductCreated, isEditing, editProductData, onPro
   //   }
   }, [isEditing, editProductData]);
 
-  const handleChange = (key, value) => {
+  const handleChange = (key, value) =>{
     setProduct((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -235,7 +305,7 @@ const ProductsList = ({ refresh, onEdit }) => {
             <View style={tw("flex-row items-start gap-4 bg-gray-800 p-4 rounded-lg")}>
               {item.imageUrl && (
                 <Image
-                  source={{ uri: `http://10.0.0.7:5000${item.imageUrl}` }}
+                  source={{ uri: `http://10.0.0.6:5000${item.imageUrl}` }}
                   style={tw("w-24 h-24 rounded-md")}
                   resizeMode="cover"
                 />
@@ -327,6 +397,17 @@ export default function AdminScreen() {
   const cancelEdit = () =>{
     setIsEditing(false);
     setEditProductData(null);
+  };
+
+    const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem('token');
+      Alert.alert('Success', 'Logged out successfully');
+      router.replace('/auth'); // Navigate back to login
+    } catch (error) {
+      console.error('Logout error:', error);
+      Alert.alert('Error', 'Failed to logout');
+    }
   };
 
   return (

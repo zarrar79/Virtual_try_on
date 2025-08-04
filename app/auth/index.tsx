@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router';
-import { navigate } from 'expo-router/build/global-state/routing';
+import axios from 'axios';
+import AsyncStorage, { useAsyncStorage } from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Dimensions,
   Image,
@@ -14,14 +15,40 @@ import {
   Text,
   TextInput,
   View,
+  Alert,
 } from 'react-native';
-
-// ... imports stay the same
 
 export default function Login() {
   const router = useRouter();
   const screenWidth = Dimensions.get('window').width;
   const isLargeScreen = screenWidth > 800;
+
+  // States for login
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleLogin = async () =>{
+    // if(await AsyncStorage.getItem('token'))
+    //   return alert('You are Already Logged In');
+    try {
+      const response = await axios.post('http://10.0.0.6:5000/admin/login', {
+        email,
+        password,
+      });
+
+      const { token } = response.data;
+
+      // Save token in AsyncStorage
+      await AsyncStorage.setItem('token', token);
+
+      Alert.alert('Success', 'Logged in successfully!');
+      router.replace('/'); // Go to home screen
+    } catch (error) {
+      console.error(error.response?.data || error.message);
+      Alert.alert('Error', error.response?.data?.message || 'Login failed');
+    }
+  };
+
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -47,6 +74,8 @@ export default function Login() {
                     keyboardType="email-address"
                     autoCapitalize="none"
                     style={styles.input}
+                    value={email}
+                    onChangeText={setEmail}
                   />
                 </View>
 
@@ -57,6 +86,8 @@ export default function Login() {
                     placeholderTextColor="#aaa"
                     secureTextEntry
                     style={styles.input}
+                    value={password}
+                    onChangeText={setPassword}
                   />
                 </View>
 
@@ -65,12 +96,9 @@ export default function Login() {
                     styles.button,
                     pressed ? styles.whiteButton : styles.greenButton,
                   ]}
-                  onPress={() => console.log('Logging in...')}
+                  onPress={handleLogin}
                 >
-                  <Text style={styles.buttonText}>
-                  
-                    Login
-                  </Text>
+                  <Text style={styles.buttonText}>Login</Text>
                 </Pressable>
 
                 <Pressable onPress={() => router.push('/auth/signup')}>
@@ -97,6 +125,7 @@ export default function Login() {
     </SafeAreaView>
   );
 }
+
 
 
 const styles = StyleSheet.create({
