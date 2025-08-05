@@ -31,7 +31,7 @@ export default function Login() {
     // if(await AsyncStorage.getItem('token'))
     //   return alert('You are Already Logged In');
     try {
-      const response = await axios.post('http://10.0.0.6:5000/admin/login', {
+      const response = await axios.post('http://10.0.0.2:5000/admin/login', {
         email,
         password,
       });

@@ -7,6 +7,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const fs = require("fs");
 const path = require("path");
+const  { InferenceClient } = require('@huggingface/inference');
 
 const User = require("./models/User");
 const Product = require("./models/Product");
@@ -34,15 +35,9 @@ mongoose
   .catch((err) => console.log("MongoDB connection error:", err));
 
 // ========================= Multer Setup ========================= //
-// const storage = multer.diskStorage({
-//   destination: (req, file, cb) => {
-//     cb(null, "uploads/"); // Folder must exist
-//   },
-//   filename: (req, file, cb) => {
-//     cb(null, `${Date.now()}-${file.originalname}`);
-//   },
-// });
-const upload = multer({ dest : 'uploads/' });
+
+const upload = multer({ dest: "uploads/" });
+const hf = new InferenceClient(process.env.HF_TOKEN);
 
 // ========================= User Routes ========================= //
 app.post("/user/signup", async (req, res) => {
@@ -235,7 +230,7 @@ app.get("/products/:id", authMiddleware,async (req, res) => {
 });
 
 // UPDATE product
-app.put("/products/:id",authMiddleware , upload.single("image"), async (req, res) => {
+app.put("/products/:id",authMiddleware, async (req, res) => {
   try {
     const { name, description, price } = req.body;
     const updateData = { name, description, price };
@@ -266,6 +261,11 @@ app.delete("/products/:id", authMiddleware ,async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// ========================= Model Endpoint ======================= //
+
+
+
 
 // ========================= Server Start ========================= //
 const PORT = process.env.PORT || 5000;

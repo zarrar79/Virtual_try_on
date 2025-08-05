@@ -19,7 +19,7 @@ import { PieChart, BarChart } from "react-native-chart-kit";
 import { tw } from "./utils/tw"; // Adjust path as needed
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useRouter } from "expo-router";
-const API_BASE = "http://10.0.0.6:5000/products";
+const API_BASE = "http://10.0.0.2:5000/products";
 const screenWidth = Dimensions.get("window").width;
 
 
@@ -118,7 +118,7 @@ const CreateProductForm = ({ onProductCreated, isEditing, editProductData, onPro
     if (isEditing && editProductData) {
       setProduct(editProductData);
       if (editProductData.imageUrl) {
-        setImage({ uri: `http://10.0.0.6:5000${editProductData.imageUrl}` });
+        setImage({ uri: `http://10.0.0.2:5000${editProductData.imageUrl}` });
       }
     }
   //   else{
@@ -183,11 +183,15 @@ const CreateProductForm = ({ onProductCreated, isEditing, editProductData, onPro
       const base64Image = await compressImage(image.uri);
       payload.image = base64Image;
     }
-
+    const token = await AsyncStorage.getItem('token');
+    
     try {
       const res = await fetch(isEditing ? `${API_BASE}/${product._id}` : API_BASE, {
         method: isEditing ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization" : `Bearer ${token}` 
+        },
         body: JSON.stringify(payload),
       });
 
@@ -305,7 +309,7 @@ const ProductsList = ({ refresh, onEdit }) => {
             <View style={tw("flex-row items-start gap-4 bg-gray-800 p-4 rounded-lg")}>
               {item.imageUrl && (
                 <Image
-                  source={{ uri: `http://10.0.0.6:5000${item.imageUrl}` }}
+                  source={{ uri: `http://10.0.0.2:5000${item.imageUrl}` }}
                   style={tw("w-24 h-24 rounded-md")}
                   resizeMode="cover"
                 />

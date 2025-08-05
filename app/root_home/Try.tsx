@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  ScrollView,
+  Platform,
+} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useRoute } from '@react-navigation/native';
 
@@ -9,6 +18,7 @@ export default function Try() {
 
   const [userImage, setUserImage] = useState<string | null>(null);
   const [outputImage, setOutputImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -22,22 +32,49 @@ export default function Try() {
       quality: 1,
     });
 
-    if (!result.cancelled && result.assets && result.assets.length > 0) {
+    if (!result.canceled && result.assets && result.assets.length > 0) {
       setUserImage(result.assets[0].uri);
     }
   };
 
-  const handleTryOn = () => {
+  const handleTryOn = async () => {
     if (!userImage) {
-      Alert.alert('Upload Required', 'Please upload your image first.');
-      return;
+      return Alert.alert('Upload Required', 'Please upload your image first.');
     }
 
-    // Simulate try-on logic
-    Alert.alert('Processing', 'Virtual try-on feature coming soon...');
-    
-    // Simulate output image after processing
-    setOutputImage(userImage); // Replace this with actual AI-processed image in future
+    try {
+      setLoading(true);
+      const form = new FormData();
+
+      // Attach user (person) image
+      form.append('person', {
+        uri: userImage,
+        name: 'person.jpg',
+        type: 'image/jpeg',
+      } as any);
+
+      // Send garment image URL only (backend will fetch it)
+      form.append('garment_url', `http://10.0.0.2:5000${product.imageUrl}`);
+
+      const response = await fetch('http://10.0.0.2:5001/tryon', {
+        method: 'POST',
+        body: form,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Try-on failed');
+      }
+
+      const { output } = await response.json();
+      setOutputImage(`data:image/jpeg;base64,${output}`);
+    } catch (err) {
+      Alert.alert('Error', err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -46,7 +83,7 @@ export default function Try() {
 
       {/* Product Image */}
       <Image
-        source={{ uri: `http://10.0.0.6:5000${product.imageUrl}` }}
+        source={{ uri: `http://10.0.0.2:5000${product.imageUrl}` }}
         style={styles.dressImage}
       />
 
@@ -62,7 +99,9 @@ export default function Try() {
 
       {/* Try Button */}
       <TouchableOpacity style={styles.tryButton} onPress={handleTryOn}>
-        <Text style={styles.tryButtonText}>Try Now</Text>
+        <Text style={styles.tryButtonText}>
+          {loading ? 'Processing...' : 'Try Now'}
+        </Text>
       </TouchableOpacity>
 
       {/* Output Image Display */}
