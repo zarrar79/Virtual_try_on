@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Alert,
   ScrollView,
-  Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useRoute } from '@react-navigation/native';
@@ -32,7 +31,7 @@ export default function Try() {
       quality: 1,
     });
 
-    if (!result.canceled && result.assets && result.assets.length > 0) {
+    if (!result.canceled && result.assets.length > 0) {
       setUserImage(result.assets[0].uri);
     }
   };
@@ -44,33 +43,43 @@ export default function Try() {
 
     try {
       setLoading(true);
-      const form = new FormData();
+      const formData = new FormData();
 
-      // Attach user (person) image
-      form.append('person', {
+      // Append model image (user image)
+      formData.append('model', {
         uri: userImage,
-        name: 'person.jpg',
+        name: 'user.jpg',
         type: 'image/jpeg',
       } as any);
 
-      // Send garment image URL only (backend will fetch it)
-      form.append('garment_url', `http://10.0.0.2:5000${product.imageUrl}`);
+      // Fetch the cloth image as a blob
+      const clothResponse = await fetch(`http://10.0.0.2:5000${product.imageUrl}`);
+      const clothBlob = await clothResponse.blob();
 
-      const response = await fetch('http://10.0.0.2:5001/tryon', {
+      // Create a new File object for cloth image
+      const clothFile: any = {
+        uri: `http://10.0.0.2:5000${product.imageUrl}`,
+        name: 'cloth.jpg',
+        type: clothBlob.type || 'image/jpeg',
+      };
+
+      formData.append('cloth', clothFile);
+
+      // Send to Node.js backend
+      const response = await fetch('http://10.0.0.2:3000/api/tryon', {
         method: 'POST',
-        body: form,
+        body: formData,
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
 
-      if (!response.ok) {
-        throw new Error('Try-on failed');
-      }
+      if (!response.ok) throw new Error('Try-on failed');
 
-      const { output } = await response.json();
-      setOutputImage(`data:image/jpeg;base64,${output}`);
-    } catch (err) {
+      const { result } = await response.json();
+
+      setOutputImage(`data:image/jpeg;base64,${result}`);
+    } catch (err: any) {
       Alert.alert('Error', err.message);
     } finally {
       setLoading(false);
@@ -81,30 +90,25 @@ export default function Try() {
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <Text style={styles.title}>Virtual Try-On</Text>
 
-      {/* Product Image */}
       <Image
         source={{ uri: `http://10.0.0.2:5000${product.imageUrl}` }}
         style={styles.dressImage}
       />
 
-      {/* Upload User Image */}
       <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
         <Text style={styles.uploadButtonText}>Upload Your Image</Text>
       </TouchableOpacity>
 
-      {/* User Image Display */}
       {userImage && (
         <Image source={{ uri: userImage }} style={styles.userImage} />
       )}
 
-      {/* Try Button */}
       <TouchableOpacity style={styles.tryButton} onPress={handleTryOn}>
         <Text style={styles.tryButtonText}>
           {loading ? 'Processing...' : 'Try Now'}
         </Text>
       </TouchableOpacity>
 
-      {/* Output Image Display */}
       {outputImage && (
         <View style={styles.outputContainer}>
           <Text style={styles.outputText}>Output Image:</Text>
