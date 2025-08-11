@@ -23,6 +23,87 @@ const API_BASE = "http://10.0.0.7:5000/products";
 const screenWidth = Dimensions.get("window").width;
 
 
+export default function AdminScreen() {
+  const [activeTab, setActiveTab] = useState("create");
+  const [refreshProducts, setRefreshProducts] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editProductData, setEditProductData] = useState(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    // This runs only on the client
+    async function checkToken() {
+      try {
+        const token = await AsyncStorage.getItem('token');
+        if (!token) {
+          router.push('/auth');
+        } else {
+          Alert.alert('Please Login First!');
+        }
+      } catch (err) {
+        console.error('Error reading token', err);
+      }
+    }
+
+    checkToken();
+  }, [router]);
+
+
+  const startEdit = (item) => {
+    setIsEditing(true);
+    setEditProductData(item);
+    setActiveTab("create");
+  };
+
+
+  const cancelEdit = () =>{
+    setIsEditing(false);
+    setEditProductData(null);
+  };
+
+  return (
+    <ScrollView contentContainerStyle={[tw("bg-black min-h-full"), { padding: 24, paddingTop: 50 }]}>
+      <AdminHeader />
+      <Text style={tw("text-green-500 text-4xl font-extrabold text-center mb-7")}>
+        Welcome Back, Admin
+      </Text>
+
+      <View style={tw("flex-row justify-center flex-wrap mb-7")}>
+        {["create", "products", "analytics"].map((tab) => (
+          <TouchableOpacity
+            key={tab}
+            onPress={() => setActiveTab(tab)}
+            style={tw(`px-5 py-3 mx-2 my-2 rounded-lg ${activeTab === tab ? "bg-green-700" : "bg-gray-800"}`)}
+          >
+            <View style={tw("flex-row items-center")}>
+              {tab === "create" && <Feather name="plus-circle" size={20} color="white" />}
+              {tab === "products" && <MaterialCommunityIcons name="basket" size={20} color="white" />}
+              {tab === "analytics" && <MaterialCommunityIcons name="chart-bar" size={20} color="white" />}
+              <Text style={tw("text-white text-base ml-2 font-semibold")}>
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {activeTab === "create" && (
+        <CreateProductForm
+          isEditing={isEditing}
+          editProductData={editProductData}
+          cancelEdit={cancelEdit}
+          onProductCreated={() => setRefreshProducts(!refreshProducts)}
+          onProductUpdated={() => {
+            cancelEdit();
+            setRefreshProducts(!refreshProducts);
+          }}
+        />
+      )}
+      {activeTab === "products" && <ProductsList refresh={refreshProducts} onEdit={startEdit} />}
+      {activeTab === "analytics" && <AnalyticsTab />}
+    </ScrollView>
+  );
+}
 const AdminHeader = () => {
   const router = useRouter();
 
@@ -388,77 +469,3 @@ const AnalyticsTab = () => {
     </View>
   );
 };
-
-export default function AdminScreen() {
-  const [activeTab, setActiveTab] = useState("create");
-  const [refreshProducts, setRefreshProducts] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editProductData, setEditProductData] = useState(null);
-
-
-  const startEdit = (item) => {
-    setIsEditing(true);
-    setEditProductData(item);
-    setActiveTab("create");
-  };
-
-
-  const cancelEdit = () =>{
-    setIsEditing(false);
-    setEditProductData(null);
-  };
-
-    const handleLogout = async () => {
-    try {
-      await AsyncStorage.removeItem('token');
-      Alert.alert('Success', 'Logged out successfully');
-      router.replace('/auth'); // Navigate back to login
-    } catch (error) {
-      console.error('Logout error:', error);
-      Alert.alert('Error', 'Failed to logout');
-    }
-  };
-
-  return (
-    <ScrollView contentContainerStyle={[tw("bg-black min-h-full"), { padding: 24, paddingTop: 50 }]}>
-      <AdminHeader />
-      <Text style={tw("text-green-500 text-4xl font-extrabold text-center mb-7")}>
-        Welcome Back, Admin
-      </Text>
-
-      <View style={tw("flex-row justify-center flex-wrap mb-7")}>
-        {["create", "products", "analytics"].map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            onPress={() => setActiveTab(tab)}
-            style={tw(`px-5 py-3 mx-2 my-2 rounded-lg ${activeTab === tab ? "bg-green-700" : "bg-gray-800"}`)}
-          >
-            <View style={tw("flex-row items-center")}>
-              {tab === "create" && <Feather name="plus-circle" size={20} color="white" />}
-              {tab === "products" && <MaterialCommunityIcons name="basket" size={20} color="white" />}
-              {tab === "analytics" && <MaterialCommunityIcons name="chart-bar" size={20} color="white" />}
-              <Text style={tw("text-white text-base ml-2 font-semibold")}>
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {activeTab === "create" && (
-        <CreateProductForm
-          isEditing={isEditing}
-          editProductData={editProductData}
-          cancelEdit={cancelEdit}
-          onProductCreated={() => setRefreshProducts(!refreshProducts)}
-          onProductUpdated={() => {
-            cancelEdit();
-            setRefreshProducts(!refreshProducts);
-          }}
-        />
-      )}
-      {activeTab === "products" && <ProductsList refresh={refreshProducts} onEdit={startEdit} />}
-      {activeTab === "analytics" && <AnalyticsTab />}
-    </ScrollView>
-  );
-}
