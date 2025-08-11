@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  frontend:
+    build: ./app
+    ports:
+      - "19006:19006"
+    environment:
+      - EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0
+    command: ["npx", "expo", "start", "--web", "--host", "lan"]
+
+  backend:
+    build: ./backend
+    ports:
+      - 5000:5000
+    environment:
+      DB_URL: mongodb://db/tryon
+
+  db:
+    image: mongo:4.0-xenial
+    ports:
+      - 27017:27017
+    volumes:
+      - tryon:/data/db
+volumes:
+  tryon:

@@ -4,12 +4,8 @@ WORKDIR /app
 
 COPY package*.json ./
 RUN npm install
-
 COPY . .
 
-EXPOSE 19006
+EXPOSE 5000
 
-
-CMD ["npx", "expo", "start", "--web", "--host", "lan"]
-
-
+CMD [ "npm", "start" ]
