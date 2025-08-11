@@ -53,12 +53,12 @@ export default function Try() {
       } as any);
 
       // Fetch the cloth image as a blob
-      const clothResponse = await fetch(`http://10.0.0.2:5000${product.imageUrl}`);
+      const clothResponse = await fetch(`http://10.0.0.7:5000${product.imageUrl}`);
       const clothBlob = await clothResponse.blob();
 
       // Create a new File object for cloth image
       const clothFile: any = {
-        uri: `http://10.0.0.2:5000${product.imageUrl}`,
+        uri: `http://10.0.0.7:5000${product.imageUrl}`,
         name: 'cloth.jpg',
         type: clothBlob.type || 'image/jpeg',
       };
@@ -66,7 +66,7 @@ export default function Try() {
       formData.append('cloth', clothFile);
 
       // Send to Node.js backend
-      const response = await fetch('http://10.0.0.2:3000/api/tryon', {
+      const response = await fetch('http://10.0.0.7:3000/api/tryon', {
         method: 'POST',
         body: formData,
         headers: {
@@ -91,7 +91,7 @@ export default function Try() {
       <Text style={styles.title}>Virtual Try-On</Text>
 
       <Image
-        source={{ uri: `http://10.0.0.2:5000${product.imageUrl}` }}
+        source={{ uri: `http://10.0.0.7:5000${product.imageUrl}` }}
         style={styles.dressImage}
       />
 

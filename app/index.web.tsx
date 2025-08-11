@@ -19,7 +19,7 @@ import { PieChart, BarChart } from "react-native-chart-kit";
 import { tw } from "./utils/tw"; // Adjust path as needed
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useRouter } from "expo-router";
-const API_BASE = "http://10.0.0.2:5000/products";
+const API_BASE = "http://10.0.0.7:5000/products";
 const screenWidth = Dimensions.get("window").width;
 
 
@@ -41,7 +41,7 @@ const AdminHeader = () => {
       {/* Profile Section */}
       <View style={styles.profileContainer}>
         <Image
-          source={{ uri: "https://i.pravatar.cc/100?img=3" }}
+          source={{ uri: "https://i.pravatar.cc/100?img=3"}}
           style={styles.avatar}
         />
         <View>
@@ -118,7 +118,7 @@ const CreateProductForm = ({ onProductCreated, isEditing, editProductData, onPro
     if (isEditing && editProductData) {
       setProduct(editProductData);
       if (editProductData.imageUrl) {
-        setImage({ uri: `http://10.0.0.2:5000${editProductData.imageUrl}` });
+        setImage({ uri: `http://10.0.0.7:5000${editProductData.imageUrl}` });
       }
     }
   //   else{
@@ -282,10 +282,15 @@ const ProductsList = ({ refresh, onEdit }) => {
   }, [refresh]);
 
   const handleDelete = async (item) => {
+    const token = await AsyncStorage.getItem('token');
     try {
       const response = await fetch(`${API_BASE}/${item._id}`, {
         method: "DELETE",
-      });
+        headers: { 
+          "Authorization" : `Bearer ${token}` 
+        }
+      }
+    );
       const data = await response.json();
       if (response.ok) {
         Alert.alert("Deleted", data.message);
@@ -309,7 +314,7 @@ const ProductsList = ({ refresh, onEdit }) => {
             <View style={tw("flex-row items-start gap-4 bg-gray-800 p-4 rounded-lg")}>
               {item.imageUrl && (
                 <Image
-                  source={{ uri: `http://10.0.0.2:5000${item.imageUrl}` }}
+                  source={{ uri: `http://10.0.0.7:5000${item.imageUrl}` }}
                   style={tw("w-24 h-24 rounded-md")}
                   resizeMode="cover"
                 />

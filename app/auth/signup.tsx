@@ -40,7 +40,7 @@ export default function Signup() {
     }
 
     try {
-      const response = await fetch('http://10.0.0.5:5000/admin/signup', {
+      const response = await fetch('http://10.0.0.7:5000/admin/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

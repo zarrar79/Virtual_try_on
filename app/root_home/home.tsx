@@ -19,7 +19,7 @@ export default function Home() {
   const navigation = useNavigation(); // ✅ call useNavigation here
 
   useEffect(() => {
-    fetch('http://10.0.0.2:5000/products')
+    fetch('http://10.0.0.7:5000/products')
       .then((response) => response.json())
       .then((data) => setProducts(data))
       .catch((error) => console.error('Error fetching products:', error));
@@ -60,7 +60,7 @@ export default function Home() {
   const renderDress = ({ item }: { item: typeof products[0] }) => (
     <TouchableOpacity style={styles.productCard}>
       <Image
-        source={{ uri: `http://10.0.0.2:5000${item.imageUrl}` }}
+        source={{ uri: `http://10.0.0.7:5000${item.imageUrl}` }}
         style={styles.productImage}
       />
       <View style={styles.productInfo}>
