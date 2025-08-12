@@ -18,7 +18,7 @@ export default function RootLayout() {
           options={{
             headerShown: true,
             title: 'Try Your Dress',
-            headerBackVisible: false
+            headerBackVisible: true
           }}
         />
       </Stack>

@@ -19,28 +19,28 @@ export default function Home() {
   const navigation = useNavigation(); // ✅ call useNavigation here
 
   useEffect(() => {
-    fetch('http://10.0.0.7:5000/products')
+    fetch('http://10.0.0.2:5000/products')
       .then((response) => response.json())
       .then((data) => setProducts(data))
       .catch((error) => console.error('Error fetching products:', error));
   }, []);
 
-  useEffect(() => {
-    const handleBackPress = () => {
-      Alert.alert('Exit App', 'Do you want to exit the app?', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Exit', onPress: () => BackHandler.exitApp() },
-      ]);
-      return true;
-    };
+  // useEffect(() => {
+  //   const handleBackPress = () => {
+  //     Alert.alert('Exit App', 'Do you want to exit the app?', [
+  //       { text: 'Cancel', style: 'cancel' },
+  //       { text: 'Exit', onPress: () => BackHandler.exitApp() },
+  //     ]);
+  //     return true;
+  //   };
 
-    const backHandler = BackHandler.addEventListener(
-      'hardwareBackPress',
-      handleBackPress
-    );
+  //   const backHandler = BackHandler.addEventListener(
+  //     'hardwareBackPress',
+  //     handleBackPress
+  //   );
 
-    return () => backHandler.remove();
-  }, []);
+  //   return () => backHandler.remove();
+  // }, []);
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -60,7 +60,7 @@ export default function Home() {
   const renderDress = ({ item }: { item: typeof products[0] }) => (
     <TouchableOpacity style={styles.productCard}>
       <Image
-        source={{ uri: `http://10.0.0.7:5000${item.imageUrl}` }}
+        source={{ uri: `http://10.0.0.2:5000${item.imageUrl}` }}
         style={styles.productImage}
       />
       <View style={styles.productInfo}>

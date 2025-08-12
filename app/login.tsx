@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
@@ -22,13 +22,14 @@ export default function Login() {
   const [password, setPassword] = useState('');
 
   const handleLogin = async () => {
+
     if (!email.trim() || !password.trim()) {
       Alert.alert('Error', 'Please fill in both email and password fields');
       return;
     }
 
     try {
-      const response = await fetch('http://10.0.0.7:5000/user/login', {
+      const response = await fetch('http://10.0.0.2:5000/user/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -40,6 +41,7 @@ export default function Login() {
 
       if (response.ok && data.success) {
         await AsyncStorage.setItem('token', data.token);
+        await AsyncStorage.setItem('user', data.user._id);
 
         // ✅ Disable back button by replacing the login screen
         router.replace('/root_home/home'); // <- path must match your file name under `app/`
