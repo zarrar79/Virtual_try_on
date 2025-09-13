@@ -13,13 +13,16 @@ import {
 import { router } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCart } from '../context/CartContext';
 
 export default function Home() {
   const [products, setProducts] = useState([]);
   const navigation = useNavigation(); // ✅ call useNavigation here
+  const [cartItems, setCart] = useState([]);
+  const { addToCart, cart } = useCart();
 
   useEffect(() => {
-    fetch('http://10.0.0.2:5000/products')
+    fetch('http://192.168.1.22:5000/products')
       .then((response) => response.json())
       .then((data) => setProducts(data))
       .catch((error) => console.error('Error fetching products:', error));
@@ -55,12 +58,17 @@ export default function Home() {
       },
     ]);
   };
+  const handleAddToCart = (product: typeof products[0]) => {
+    addToCart(product);
+    alert(`${product.name} added to cart!`);
+  };
+
 
   // ✅ Valid hook usage: renderDress uses navigation from above
   const renderDress = ({ item }: { item: typeof products[0] }) => (
-    <TouchableOpacity style={styles.productCard}>
+    <TouchableOpacity style={styles.productCard} activeOpacity={0.9}>
       <Image
-        source={{ uri: `http://10.0.0.2:5000${item.imageUrl}` }}
+        source={{ uri: `http://192.168.1.22:5000${item.imageUrl}` }}
         style={styles.productImage}
       />
       <View style={styles.productInfo}>
@@ -72,8 +80,17 @@ export default function Home() {
             <Text style={styles.tryText}>Try it</Text>
           </TouchableOpacity>
         </View>
+
         <Text style={styles.productPrice}>Rs.{item.price}.00</Text>
         <Text style={styles.productDescription}>{item.description}</Text>
+
+        {/* Add to Cart Button */}
+        <TouchableOpacity
+          style={styles.addToCartBtn}
+          onPress={() => handleAddToCart(item)}
+        >
+          <Text style={styles.addToCartText}>Add to Cart</Text>
+        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
@@ -82,6 +99,12 @@ export default function Home() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Fashion Dresses</Text>
+
+        {/* Cart Icon */}
+        <TouchableOpacity onPress={() => router.push('/root_home/cart')}>
+          <Text style={styles.logoutText}>🛒 {cart.length}</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity onPress={handleLogout}>
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
@@ -98,22 +121,38 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
+  addToCartBtn: {
+    backgroundColor: '#007bff',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  addToCartText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
   productHeader: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-},
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
 
-tryText: {
-  color: '#007BFF',
-  fontWeight: 'bold',
-},
+  tryText: {
+    color: '#007BFF',
+    fontWeight: 'bold',
+  },
   header: {
-    padding: 30,
+    paddingTop: 40,
+    paddingBottom : 20,
+    paddingHorizontal: 25,
     backgroundColor: '#db3022',
     flexDirection: 'row',
     justifyContent: 'space-between',
