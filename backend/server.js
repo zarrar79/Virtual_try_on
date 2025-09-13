@@ -4,14 +4,16 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const multer = require("multer");
 const bcrypt = require("bcrypt");
+const Stripe = require("stripe");
 const jwt = require("jsonwebtoken");
+const Order = require("./models/Order")
 const fs = require("fs");
 const path = require("path");
-const  { InferenceClient } = require('@huggingface/inference');
+const { InferenceClient } = require("@huggingface/inference");
 
 const User = require("./models/User");
 const Product = require("./models/Product");
-const Admin = require('./models/Admin')
+const Admin = require("./models/Admin");
 const authMiddleware = require("./middleware/authMiddleWare");
 const { log } = require("console");
 
@@ -20,10 +22,12 @@ dotenv.config();
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.json({ limit: '10mb' })); // or higher if needed
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: "10mb" })); // or higher if needed
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Serve static files (uploaded images)
 app.use("/uploads", express.static("uploads"));
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // MongoDB connection
 mongoose
@@ -52,12 +56,10 @@ app.post("/user/signup", async (req, res) => {
     await newUser.save();
 
     const { password: _, ...userWithoutPassword } = newUser.toObject();
-    res
-      .status(201)
-      .json({
-        message: "User registered successfully",
-        user: userWithoutPassword,
-      });
+    res.status(201).json({
+      message: "User registered successfully",
+      user: userWithoutPassword,
+    });
   } catch (err) {
     console.error("Signup Error:", err);
     res.status(500).json({ message: "Something went wrong  " });
@@ -112,12 +114,10 @@ app.post("/admin/signup", async (req, res) => {
     await newUser.save();
 
     const { password: _, ...userWithoutPassword } = newUser.toObject();
-    res
-      .status(201)
-      .json({
-        message: "User registered successfully",
-        user: userWithoutPassword,
-      });
+    res.status(201).json({
+      message: "User registered successfully",
+      user: userWithoutPassword,
+    });
   } catch (err) {
     console.error("Signup Error:", err);
     res.status(500).json({ message: "Something went wrong  " });
@@ -161,11 +161,12 @@ app.post("/admin/login", async (req, res) => {
 // ========================= Product Routes ========================= //
 
 // CREATE product with image
-app.post("/products",authMiddleware, async (req, res) => {
+app.post("/products", authMiddleware, async (req, res) => {
   try {
-    const { image, name, brand, category, price, quantity, description } = req.body;
+    const { image, name, brand, category, price, quantity, description } =
+      req.body;
     console.log(req.body);
-    
+
     // Check for required fields
     if (!image || !name || !category || !quantity) {
       return res.status(400).json({
@@ -200,13 +201,11 @@ app.post("/products",authMiddleware, async (req, res) => {
 
     const saved = await product.save();
     res.status(201).json(saved);
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Something went wrong: " + err.message });
   }
 });
-
 
 // READ all products
 app.get("/products", async (req, res) => {
@@ -219,7 +218,7 @@ app.get("/products", async (req, res) => {
 });
 
 // READ single product
-app.get("/products/:id", authMiddleware,async (req, res) => {
+app.get("/products/:id", authMiddleware, async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ message: "Product not found" });
@@ -230,7 +229,7 @@ app.get("/products/:id", authMiddleware,async (req, res) => {
 });
 
 // UPDATE product
-app.put("/products/:id",authMiddleware, async (req, res) => {
+app.put("/products/:id", authMiddleware, async (req, res) => {
   try {
     const { name, description, price } = req.body;
     const updateData = { name, description, price };
@@ -250,22 +249,103 @@ app.put("/products/:id",authMiddleware, async (req, res) => {
 });
 
 // DELETE product
-app.delete("/products/:id", authMiddleware ,async (req, res) => {
+app.delete("/products/:id", authMiddleware, async (req, res) => {
   try {
     const deleted = await Product.findByIdAndDelete(req.params.id);
     console.log(deleted);
-    
-    if (!deleted) return res.status(404).json({ message: "Product not found " });
+
+    if (!deleted)
+      return res.status(404).json({ message: "Product not found " });
     res.json({ message: "Product deleted" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
+// ========================= Stripe Endpoints ======================= //
+
+app.post("/create-checkout-session", async (req, res) => {
+  try {
+    
+    const { cart, userId, user_name } = req.body;
+    console.log(userId,'userId');
+    
+
+    if (!cart || cart.length === 0) {
+      return res.status(400).json({ error: "Cart is empty" });
+    }
+
+    // ✅ Log cart to verify structure
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      line_items: cart.map((item) => ({
+        price_data: {
+          currency: "pkr",
+          product_data: {
+            name: item.name,
+          },
+          unit_amount: Math.round(item.price * 100 * 10), // ×10 for testing
+        },
+        quantity: item.quantity,
+      })),
+
+      success_url: "exp://192.168.1.22:8081/--/root_home/success",
+      cancel_url: "exp://192.168.1.22:8081/--/root_home/cancel",
+    });
+    const order = new Order({
+          user: userId,
+          userName : user_name,
+          items: cart.map((item) => ({
+            productId: item._id,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            imageUrl: item.imageUrl,
+          })),
+          totalAmount: session.amount_total / 100, // convert from cents
+          currency: session.currency,
+          status: "paid",
+        })
+
+        await order.save();
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error("Stripe error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// ========================= Order Endpoint ======================= //
+ 
+// Get all orders
+app.get("/orders", async (req, res) => {
+  try {
+    const orders = await Order.find(); // you can also .populate("user") if needed
+    res.json(orders);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch orders" });
+  }
+});
+
+app.put("/orders/:id/status", async (req, res) => {
+  try {
+    const { status } = req.body;
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    );
+    res.json(order);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update order status" });
+  }
+});
+
+
 // ========================= Model Endpoint ======================= //
-
-
-
 
 // ========================= Server Start ========================= //
 const PORT = process.env.PORT || 5000;

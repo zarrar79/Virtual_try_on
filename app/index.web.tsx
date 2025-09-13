@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import  OrdersScreen  from "./Orders";
 import {
   View,
   Text,
@@ -14,12 +15,11 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
-import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
-import { PieChart, BarChart } from "react-native-chart-kit";
+import { MaterialCommunityIcons, Feather } from "@expo/vector-icons"
 import { tw } from "./utils/tw"; // Adjust path as needed
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useRouter } from "expo-router";
-const API_BASE = "http://10.0.0.7:5000/products";
+const API_BASE = "http://192.168.1.22:5000/products";
 const screenWidth = Dimensions.get("window").width;
 
 
@@ -69,7 +69,7 @@ export default function AdminScreen() {
       </Text>
 
       <View style={tw("flex-row justify-center flex-wrap mb-7")}>
-        {["create", "products", "analytics"].map((tab) => (
+        {["create", "products","orders"].map((tab) => (
           <TouchableOpacity
             key={tab}
             onPress={() => setActiveTab(tab)}
@@ -78,7 +78,7 @@ export default function AdminScreen() {
             <View style={tw("flex-row items-center")}>
               {tab === "create" && <Feather name="plus-circle" size={20} color="white" />}
               {tab === "products" && <MaterialCommunityIcons name="basket" size={20} color="white" />}
-              {tab === "analytics" && <MaterialCommunityIcons name="chart-bar" size={20} color="white" />}
+              {tab === "orders" && <MaterialCommunityIcons name="cart" size={20} color="white" />}
               <Text style={tw("text-white text-base ml-2 font-semibold")}>
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
               </Text>
@@ -100,7 +100,7 @@ export default function AdminScreen() {
         />
       )}
       {activeTab === "products" && <ProductsList refresh={refreshProducts} onEdit={startEdit} />}
-      {activeTab === "analytics" && <AnalyticsTab />}
+      {activeTab === "orders" && <OrdersScreen/>}
     </ScrollView>
   );
 }
@@ -199,7 +199,7 @@ const CreateProductForm = ({ onProductCreated, isEditing, editProductData, onPro
     if (isEditing && editProductData) {
       setProduct(editProductData);
       if (editProductData.imageUrl) {
-        setImage({ uri: `http://10.0.0.7:5000${editProductData.imageUrl}` });
+        setImage({ uri: `http://192.168.1.22:5000/${editProductData.imageUrl}` });
       }
     }
   //   else{
@@ -251,7 +251,7 @@ const CreateProductForm = ({ onProductCreated, isEditing, editProductData, onPro
       { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true }
     );
     return `data:image/jpeg;base64,${result.base64}`;
-  };
+  }
 
   const handleSubmit = async () => {
     if (!product.name) {
@@ -395,7 +395,7 @@ const ProductsList = ({ refresh, onEdit }) => {
             <View style={tw("flex-row items-start gap-4 bg-gray-800 p-4 rounded-lg")}>
               {item.imageUrl && (
                 <Image
-                  source={{ uri: `http://10.0.0.7:5000${item.imageUrl}` }}
+                  source={{ uri: `http://192.168.1.22:5000${item.imageUrl}` }}
                   style={tw("w-24 h-24 rounded-md")}
                   resizeMode="cover"
                 />
@@ -421,50 +421,6 @@ const ProductsList = ({ refresh, onEdit }) => {
             </View>
           </View>
         )}
-      />
-    </View>
-  );
-};
-
-const AnalyticsTab = () => {
-  const pieData = [
-    { name: "Category A", population: 40, color: "#34d399", legendFontColor: "#fff", legendFontSize: 14 },
-    { name: "Category B", population: 30, color: "#3b82f6", legendFontColor: "#fff", legendFontSize: 14 },
-    { name: "Category C", population: 30, color: "#f59e0b", legendFontColor: "#fff", legendFontSize: 14 },
-  ];
-  const barData = {
-    labels: ["Jan", "Feb", "Mar", "Apr", "May"],
-    datasets: [{ data: [14, 80, 45, 60, 34] }],
-  };
-  const chartConfig = {
-    backgroundGradientFrom: "#1e1e1e",
-    backgroundGradientTo: "#1e1e1e",
-    color: (opacity = 1) => `rgba(52, 211, 153, ${opacity})`,
-    labelColor: () => "#ccc",
-    strokeWidth: 2,
-    barPercentage: 0.7,
-  };
-
-  return (
-    <View style={tw("bg-neutral-900 rounded-xl p-5 mb-6")}>
-      <Text style={tw("text-white text-lg font-bold mb-4")}>Analytics Overview</Text>
-      <PieChart
-        data={pieData}
-        width={screenWidth - 40}
-        height={200}
-        chartConfig={chartConfig}
-        accessor={"population"}
-        backgroundColor={"transparent"}
-        paddingLeft={"15"}
-        absolute
-      />
-      <BarChart
-        data={barData}
-        width={screenWidth - 40}
-        height={220}
-        chartConfig={chartConfig}
-        style={{ marginTop: 16 }}
-        fromZero
       />
     </View>
   );

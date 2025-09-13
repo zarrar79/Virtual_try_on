@@ -40,8 +40,10 @@ export default function Login() {
       const data = await response.json();
 
       if (response.ok && data.success) {
+        
         await AsyncStorage.setItem('token', data.token);
         await AsyncStorage.setItem('user', data.user._id);
+        await AsyncStorage.setItem('user_name', data.user.name);
 
         // ✅ Disable back button by replacing the login screen
         router.replace('/root_home/home'); // <- path must match your file name under `app/`

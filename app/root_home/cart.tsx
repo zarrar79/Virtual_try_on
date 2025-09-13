@@ -1,9 +1,29 @@
 import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, SafeAreaView } from 'react-native';
 import { useCart } from '../context/CartContext';
 import { router } from 'expo-router';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function CartScreen() {
     const { cart, removeFromCart } = useCart();
+
+    const handleCheckout = async () => {
+        const userId = await AsyncStorage.getItem("user");
+        const user_name = await AsyncStorage.getItem("user_name");
+        
+        
+    try {
+        
+      // 1. Ask backend for Checkout Session
+      const response = await axios.post("http://192.168.1.22:5000/create-checkout-session", { cart, userId, user_name });
+      const { url } = response.data; 
+
+      // 2. Open Stripe-hosted checkout
+      router.push(url); // opens in webview/browser
+    } catch (err) {
+      console.error("Checkout error:", err);
+    }
+  };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -12,8 +32,8 @@ export default function CartScreen() {
                 <Text style={styles.headerTitle}>Your Cart</Text>
 
                 {/* Cart Icon */}
-                <TouchableOpacity onPress={() => router.push('/root_home/cart')}>
-                    <Text style={styles.logoutText}>🛒 {cart.length}</Text>
+                <TouchableOpacity onPress={handleCheckout}>
+                    <Text style={styles.logoutText}>Checkout</Text>
                 </TouchableOpacity>
             </View>
 

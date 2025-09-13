@@ -1,12 +1,13 @@
 {
   "expo": {
     
-    "name": "Virtual-Try-On",
-    "slug": "Virtual-Try-On",
+    "name": "virtualtryon",
+    "slug": "virtualtryon",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "virtualtryon",
+    "deepLinks" : true,
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
