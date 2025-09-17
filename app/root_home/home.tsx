@@ -22,7 +22,7 @@ export default function Home() {
   const { addToCart, cart } = useCart();
 
   useEffect(() => {
-    fetch('http://192.168.1.22:5000/products')
+    fetch('http://192.168.71.201:5000/products')
       .then((response) => response.json())
       .then((data) => setProducts(data))
       .catch((error) => console.error('Error fetching products:', error));
@@ -68,7 +68,7 @@ export default function Home() {
   const renderDress = ({ item }: { item: typeof products[0] }) => (
     <TouchableOpacity style={styles.productCard} activeOpacity={0.9}>
       <Image
-        source={{ uri: `http://192.168.1.22:5000${item.imageUrl}` }}
+        source={{ uri: `http://192.168.137.1:5000${item.imageUrl}` }}
         style={styles.productImage}
       />
       <View style={styles.productInfo}>
@@ -97,19 +97,6 @@ export default function Home() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Fashion Dresses</Text>
-
-        {/* Cart Icon */}
-        <TouchableOpacity onPress={() => router.push('/root_home/cart')}>
-          <Text style={styles.logoutText}>🛒 {cart.length}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={handleLogout}>
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
-      </View>
-
       <FlatList
         data={products}
         renderItem={renderDress}

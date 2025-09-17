@@ -29,7 +29,7 @@ export default function Login() {
     }
 
     try {
-      const response = await fetch('http://192.168.1.22:5000/user/login', {
+      const response = await fetch('http://192.168.71.201:5000/user/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -15,7 +15,7 @@ export default function CartScreen() {
     try {
         
       // 1. Ask backend for Checkout Session
-      const response = await axios.post("http://192.168.1.22:5000/create-checkout-session", { cart, userId, user_name });
+      const response = await axios.post("http://192.168.137.1:5000/create-checkout-session", { cart, userId, user_name });
       const { url } = response.data; 
 
       // 2. Open Stripe-hosted checkout
@@ -28,14 +28,10 @@ export default function CartScreen() {
     return (
         <SafeAreaView style={styles.container}>
             {/* Header */}
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>Your Cart</Text>
-
                 {/* Cart Icon */}
-                <TouchableOpacity onPress={handleCheckout}>
+                {/* <TouchableOpacity onPress={handleCheckout}>
                     <Text style={styles.logoutText}>Checkout</Text>
-                </TouchableOpacity>
-            </View>
+                </TouchableOpacity> */}
 
             {/* Cart Items */}
             <View style={{ flex: 1, padding: 16 }}>

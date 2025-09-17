@@ -24,7 +24,7 @@ export default function OrdersScreen() {
 
   const updateStatus = async (orderId, newStatus) => {
     try {
-      await axios.put(`http://192.168.1.22:5000/orders/${orderId}/status`, {
+      await axios.put(`http://192.168.137.196:5000/orders/${orderId}/status`, {
         status: newStatus,
       });
       // update local state after success

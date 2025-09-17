@@ -6,7 +6,7 @@ const multer = require("multer");
 const bcrypt = require("bcrypt");
 const Stripe = require("stripe");
 const jwt = require("jsonwebtoken");
-const Order = require("./models/Order")
+const Order = require("./models/Order");
 const fs = require("fs");
 const path = require("path");
 const { InferenceClient } = require("@huggingface/inference");
@@ -266,10 +266,8 @@ app.delete("/products/:id", authMiddleware, async (req, res) => {
 
 app.post("/create-checkout-session", async (req, res) => {
   try {
-    
     const { cart, userId, user_name } = req.body;
-    console.log(userId,'userId');
-    
+    console.log(userId, "userId");
 
     if (!cart || cart.length === 0) {
       return res.status(400).json({ error: "Cart is empty" });
@@ -295,21 +293,21 @@ app.post("/create-checkout-session", async (req, res) => {
       cancel_url: "exp://192.168.1.22:8081/--/root_home/cancel",
     });
     const order = new Order({
-          user: userId,
-          userName : user_name,
-          items: cart.map((item) => ({
-            productId: item._id,
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
-            imageUrl: item.imageUrl,
-          })),
-          totalAmount: session.amount_total / 100, // convert from cents
-          currency: session.currency,
-          status: "paid",
-        })
+      user: userId,
+      userName: user_name,
+      items: cart.map((item) => ({
+        productId: item._id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        imageUrl: item.imageUrl,
+      })),
+      totalAmount: session.amount_total / 100, // convert from cents
+      currency: session.currency,
+      status: "paid",
+    });
 
-        await order.save();
+    await order.save();
     res.json({ url: session.url });
   } catch (err) {
     console.error("Stripe error:", err.message);
@@ -317,9 +315,8 @@ app.post("/create-checkout-session", async (req, res) => {
   }
 });
 
-
 // ========================= Order Endpoint ======================= //
- 
+
 // Get all orders
 app.get("/orders", async (req, res) => {
   try {
@@ -344,6 +341,23 @@ app.put("/orders/:id/status", async (req, res) => {
   }
 });
 
+app.get("/orders/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const orders = await Order.find({
+      user: new mongoose.Types.ObjectId(userId),
+    }).sort({ createdAt: -1 });
+
+    // convert Mongoose documents to plain JSON automatically
+    console.log(orders, "---->orders");
+
+    res.json(orders);
+  } catch (err) {
+    console.error("Error fetching orders:", err);
+    res.status(500).json({ message: "Error fetching orders" });
+  }
+});
 
 // ========================= Model Endpoint ======================= //
 

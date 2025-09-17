@@ -35,7 +35,7 @@ export default function Signup() {
       return;
     }
 
-    fetch('http://192.168.1.22:5000/user/signup',{
+    fetch('http://192.168.137.196:5000/user/signup',{
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
