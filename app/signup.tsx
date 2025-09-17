@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
+import { useApi } from './context/ApiContext';
 
 export default function Signup() {
   const [name, setName] = useState('');
@@ -21,6 +22,8 @@ export default function Signup() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const router = useRouter();
+
+  const BASE_URL = useApi();
 
   function signUp(data: any) {
     const { name, email, password, confirmPassword } = data;
@@ -35,7 +38,7 @@ export default function Signup() {
       return;
     }
 
-    fetch('http://192.168.137.196:5000/user/signup',{
+    fetch(`${BASE_URL}/user/signup`,{
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

@@ -2,11 +2,13 @@ import { Stack } from 'expo-router';
 import '../global.css';
 import { CartProvider } from './context/CartContext';
 import useStripeRedirect from './hooks/useStripeRedirect';
+import { ApiProvider } from './context/ApiContext';
 
 export default function RootLayout() {
   useStripeRedirect();
 
   return (
+    <ApiProvider>
     <CartProvider>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
@@ -24,5 +26,6 @@ export default function RootLayout() {
         /> */}
       </Stack>
     </CartProvider>
+    </ApiProvider>
   );
 }

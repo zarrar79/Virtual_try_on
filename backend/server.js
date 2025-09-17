@@ -186,7 +186,7 @@ app.post("/products", authMiddleware, async (req, res) => {
     fs.writeFileSync(uploadPath, buffer);
 
     // Create image URL path
-    const imageUrl = `/uploads/${filename}`; // this path should match how your frontend accesses the file
+    const imageUrl = `/backend/uploads/${filename}`; // this path should match how your frontend accesses the file
 
     // Save product to DB
     const product = new Product({
@@ -289,8 +289,8 @@ app.post("/create-checkout-session", async (req, res) => {
         quantity: item.quantity,
       })),
 
-      success_url: "exp://192.168.1.22:8081/--/root_home/success",
-      cancel_url: "exp://192.168.1.22:8081/--/root_home/cancel",
+      success_url: "exp://192.168.1.22:8081/--/redirects/success",
+      cancel_url: "exp://192.168.1.22:8081/--/redirects/cancel",
     });
     const order = new Order({
       user: userId,

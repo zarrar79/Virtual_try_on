@@ -17,11 +17,13 @@ import {
   View,
   Alert,
 } from 'react-native';
+import { useApi } from '../context/ApiContext';
 
 export default function Login() {
   const router = useRouter();
   const screenWidth = Dimensions.get('window').width;
   const isLargeScreen = screenWidth > 800;
+  const BASE_URL = useApi();
 
   // States for login
   const [email, setEmail] = useState('');
@@ -31,7 +33,7 @@ export default function Login() {
     // if(await AsyncStorage.getItem('token'))
     //   return alert('You are Already Logged In');
     try {
-      const response = await axios.post('http://172.28.112.1:5000/admin/login', {
+      const response = await axios.post(`${BASE_URL}/admin/login`, {
         email,
         password,
       });

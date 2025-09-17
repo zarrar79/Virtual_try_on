@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import  OrdersScreen  from "./Orders";
+import OrdersScreen from "./Orders";
 import {
   View,
   Text,
@@ -13,14 +13,12 @@ import {
   Pressable,
   StyleSheet
 } from "react-native";
-import * as ImagePicker from "expo-image-picker";
-import * as ImageManipulator from "expo-image-manipulator";
 import { MaterialCommunityIcons, Feather } from "@expo/vector-icons"
 import { tw } from "./utils/tw"; // Adjust path as needed
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useRouter } from "expo-router";
-const API_BASE = "http://192.168.1.22:5000/products";
-const screenWidth = Dimensions.get("window").width;
+import ProductForm from "./components/ProductForm/ProductForm";
+import ProductsList from "./components/ProductsList";
 
 
 export default function AdminScreen() {
@@ -56,7 +54,7 @@ export default function AdminScreen() {
   };
 
 
-  const cancelEdit = () =>{
+  const cancelEdit = () => {
     setIsEditing(false);
     setEditProductData(null);
   };
@@ -69,7 +67,7 @@ export default function AdminScreen() {
       </Text>
 
       <View style={tw("flex-row justify-center flex-wrap mb-7")}>
-        {["create", "products","orders"].map((tab) => (
+        {["create", "products", "orders"].map((tab) => (
           <TouchableOpacity
             key={tab}
             onPress={() => setActiveTab(tab)}
@@ -88,19 +86,19 @@ export default function AdminScreen() {
       </View>
 
       {activeTab === "create" && (
-        <CreateProductForm
+        <ProductForm
           isEditing={isEditing}
           editProductData={editProductData}
           cancelEdit={cancelEdit}
-          onProductCreated={() => setRefreshProducts(!refreshProducts)}
-          onProductUpdated={() => {
+          onSuccess={() => {
             cancelEdit();
             setRefreshProducts(!refreshProducts);
           }}
         />
+
       )}
       {activeTab === "products" && <ProductsList refresh={refreshProducts} onEdit={startEdit} />}
-      {activeTab === "orders" && <OrdersScreen/>}
+      {activeTab === "orders" && <OrdersScreen />}
     </ScrollView>
   );
 }
@@ -122,7 +120,7 @@ const AdminHeader = () => {
       {/* Profile Section */}
       <View style={styles.profileContainer}>
         <Image
-          source={{ uri: "https://i.pravatar.cc/100?img=3"}}
+          source={{ uri: "https://i.pravatar.cc/100?img=3" }}
           style={styles.avatar}
         />
         <View>
@@ -180,248 +178,3 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
-
-
-
-const CreateProductForm = ({ onProductCreated, isEditing, editProductData, onProductUpdated, cancelEdit }) => {
-  const [product, setProduct] = useState({
-    name: "",
-    brand: "",
-    category: "",
-    price: 0,
-    quantity: 0,
-    sku: "",
-    description: "",
-  });
-  const [image, setImage] = useState(null);
-
-  useEffect(() => {
-    if (isEditing && editProductData) {
-      setProduct(editProductData);
-      if (editProductData.imageUrl) {
-        setImage({ uri: `http://192.168.1.22:5000/${editProductData.imageUrl}` });
-      }
-    }
-  //   else{
-  //     setProduct({
-  //   name: "",
-  //   brand: "",
-  //   category: "",
-  //   price: 0,
-  //   quantity: 0,
-  //   sku: "",
-  //   description: "",
-  // });
-  // setImage(null);
-  //   }
-  }, [isEditing, editProductData]);
-
-  const handleChange = (key, value) =>{
-    setProduct((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const pickImage = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      alert("Permission is required!");
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 1,
-      base64: true,
-    });
-
-    if (!result.canceled) {
-      const selected = result.assets[0];
-      setImage({
-        uri: selected.uri,
-        base64: selected.base64,
-        type: selected.type || "image/jpeg",
-        name: selected.fileName || "photo.jpg",
-      });
-    }
-  };
-
-  const compressImage = async (uri) => {
-    const result = await ImageManipulator.manipulateAsync(
-      uri,
-      [{ resize: { width: 800 } }],
-      { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true }
-    );
-    return `data:image/jpeg;base64,${result.base64}`;
-  }
-
-  const handleSubmit = async () => {
-    if (!product.name) {
-      Alert.alert("Validation", "Please enter product name.");
-      return;
-    }
-
-    let payload = { ...product };
-    if (image?.uri && image?.base64) {
-      const base64Image = await compressImage(image.uri);
-      payload.image = base64Image;
-    }
-    const token = await AsyncStorage.getItem('token');
-    
-    try {
-      const res = await fetch(isEditing ? `${API_BASE}/${product._id}` : API_BASE, {
-        method: isEditing ? "PUT" : "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization" : `Bearer ${token}` 
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        Alert.alert("Success", isEditing ? "Product updated!" : "Product added!");
-        setProduct({
-          name: "",
-          brand: "",
-          category: "",
-          price: 0,
-          quantity: 0,
-          sku: "",
-          description: "",
-        });
-        setImage(null);
-        isEditing ? onProductUpdated() : onProductCreated();
-      } else {
-        Alert.alert("Error", data.message || "Failed to save product.");
-      }
-    } catch (err) {
-      console.error(err);
-      Alert.alert("Error", "Something went wrong.");
-    }
-  };
-
-  return (
-    <View style={tw("bg-neutral-900 rounded-xl p-5 mb-6")}>
-      <Text style={tw("text-white text-lg font-bold mb-4")}>
-        {isEditing ? "Edit Product" : "Add New Product"}
-      </Text>
-
-      {["name", "brand", "category", "price", "quantity"].map((field) => (
-        <TextInput
-          key={field}
-          style={tw("bg-zinc-800 text-white px-3 py-2 rounded-md border border-emerald-400 mb-3")}
-          placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
-          placeholderTextColor="#aaa"
-          keyboardType={["price", "quantity"].includes(field) ? "numeric" : "default"}
-          value={product[field]?.toString()}
-          onChangeText={(text) => handleChange(field, text)}
-        />
-      ))}
-
-      <TextInput
-        style={tw("bg-zinc-800 text-white px-3 py-2 rounded-md border border-emerald-400 mb-3 h-20")}
-        placeholder="Description"
-        multiline
-        value={product.description}
-        onChangeText={(text) => handleChange("description", text)}
-        placeholderTextColor="#aaa"
-      />
-
-      <TouchableOpacity style={tw("bg-emerald-600 py-3 rounded-md items-center")} onPress={pickImage}>
-        <Text style={tw("text-white")}>{image ? "Change Image" : "Select Image"}</Text>
-      </TouchableOpacity>
-
-      {image && <Image source={{ uri: image.uri }} style={tw("w-24 h-24 mt-3")} />}
-
-      <TouchableOpacity style={tw("bg-emerald-600 py-3 rounded-md mt-3 items-center")} onPress={handleSubmit}>
-        <Text style={tw("text-white font-bold")}>{isEditing ? "Update Product" : "Add Product"}</Text>
-      </TouchableOpacity>
-
-      {isEditing && (
-        <TouchableOpacity onPress={cancelEdit} style={tw("mt-3 items-center")}>
-          <Text style={tw("text-red-400")}>Cancel Edit</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-};
-
-const ProductsList = ({ refresh, onEdit }) => {
-  const [products, setProducts] = useState([]);
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const res = await fetch(API_BASE);
-        const data = await res.json();
-        setProducts(data || []);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    fetchProducts();
-  }, [refresh]);
-
-  const handleDelete = async (item) => {
-    const token = await AsyncStorage.getItem('token');
-    try {
-      const response = await fetch(`${API_BASE}/${item._id}`, {
-        method: "DELETE",
-        headers: { 
-          "Authorization" : `Bearer ${token}` 
-        }
-      }
-    );
-      const data = await response.json();
-      if (response.ok) {
-        Alert.alert("Deleted", data.message);
-        setProducts((prev) => prev.filter((p) => p._id !== item._id));
-      } else {
-        Alert.alert("Error", data.message || "Delete failed");
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  return (
-    <View style={tw("bg-neutral-900 rounded-xl p-5 mb-6")}>
-      <Text style={tw("text-white text-lg font-bold mb-4")}>Product List</Text>
-      <FlatList
-        data={products}
-        keyExtractor={(item) => item._id}
-        renderItem={({ item }) => (
-          <View style={tw("mb-3")}>
-            <View style={tw("flex-row items-start gap-4 bg-gray-800 p-4 rounded-lg")}>
-              {item.imageUrl && (
-                <Image
-                  source={{ uri: `http://192.168.1.22:5000${item.imageUrl}` }}
-                  style={tw("w-24 h-24 rounded-md")}
-                  resizeMode="cover"
-                />
-              )}
-              <View style={tw("flex-1 flex-row justify-between")}>
-                <View style={tw("flex-1 pr-2")}>
-                  <Text style={tw("text-white font-bold text-lg")}>{item.name}</Text>
-                  <Text style={tw("text-gray-300")}>
-                    Brand: {item.brand} | Price: Rs. {item.price}
-                  </Text>
-                  <Text style={tw("text-gray-300")}>Qty: {item.quantity}</Text>
-                  <Text style={tw("text-gray-400")}>{item.description}</Text>
-                </View>
-                <View style={tw("items-end justify-between")}>
-                  <TouchableOpacity onPress={() => onEdit(item)}>
-                    <Text style={tw("text-blue-400 font-semibold")}>Edit</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => handleDelete(item)}>
-                    <Text style={tw("text-red-400 font-semibold")}>Delete</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </View>
-        )}
-      />
-    </View>
-  );
-};

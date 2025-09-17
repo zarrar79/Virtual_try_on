@@ -10,8 +10,10 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useRoute } from '@react-navigation/native';
+import { useApi } from '../context/ApiContext';
 
 export default function Try() {
+  const APP_BASE = useApi();
   const route = useRoute();
   const { product } = route.params;
 
@@ -53,12 +55,12 @@ export default function Try() {
       } as any);
 
       // Fetch the cloth image as a blob
-      const clothResponse = await fetch(`http://10.0.0.2:5000${product.imageUrl}`);
+      const clothResponse = await fetch(`${APP_BASE}${product.imageUrl}`);
       const clothBlob = await clothResponse.blob();
 
       // Create a new File object for cloth image
       const clothFile: any = {
-        uri: `http://10.0.0.2:5000${product.imageUrl}`,
+        uri: `${APP_BASE}${product.imageUrl}`,
         name: 'cloth.jpg',
         type: clothBlob.type || 'image/jpeg',
       };
@@ -66,7 +68,7 @@ export default function Try() {
       formData.append('cloth', clothFile);
 
       // Send to Node.js backend
-      const response = await fetch('http://10.0.0.2:3000/api/tryon', {
+      const response = await fetch(`${APP_BASE}/api/tryon`, {
         method: 'POST',
         body: formData,
         headers: {
@@ -91,7 +93,7 @@ export default function Try() {
       <Text style={styles.title}>Virtual Try-On</Text>
 
       <Image
-        source={{ uri: `http://10.0.0.2:5000${product.imageUrl}` }}
+        source={{ uri: `${APP_BASE}${product.imageUrl}` }}
         style={styles.dressImage}
       />
 

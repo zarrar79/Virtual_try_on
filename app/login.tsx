@@ -15,11 +15,14 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
+import { useApi } from './context/ApiContext';
 
 export default function Login() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  const BASE_URL = useApi();
 
   const handleLogin = async () => {
 
@@ -29,7 +32,7 @@ export default function Login() {
     }
 
     try {
-      const response = await fetch('http://192.168.71.201:5000/user/login', {
+      const response = await fetch(`${BASE_URL}/user/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

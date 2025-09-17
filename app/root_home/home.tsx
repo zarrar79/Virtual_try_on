@@ -10,19 +10,17 @@ import {
   Alert,
   BackHandler,
 } from 'react-native';
-import { router } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useCart } from '../context/CartContext';
+import { useApi } from '../context/ApiContext';
+import ProductCard from '../components/ProductCard';
 
 export default function Home() {
   const [products, setProducts] = useState([]);
   const navigation = useNavigation(); // ✅ call useNavigation here
-  const [cartItems, setCart] = useState([]);
-  const { addToCart, cart } = useCart();
+  const BASE_URL = useApi();
 
   useEffect(() => {
-    fetch('http://192.168.71.201:5000/products')
+    fetch(`${BASE_URL}/products`)
       .then((response) => response.json())
       .then((data) => setProducts(data))
       .catch((error) => console.error('Error fetching products:', error));
@@ -45,62 +43,13 @@ export default function Home() {
   //   return () => backHandler.remove();
   // }, []);
 
-  const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Logout',
-        style: 'destructive',
-        onPress: async () => {
-          await AsyncStorage.removeItem('token');
-          router.replace('/');
-        },
-      },
-    ]);
-  };
-  const handleAddToCart = (product: typeof products[0]) => {
-    addToCart(product);
-    alert(`${product.name} added to cart!`);
-  };
-
-
-  // ✅ Valid hook usage: renderDress uses navigation from above
-  const renderDress = ({ item }: { item: typeof products[0] }) => (
-    <TouchableOpacity style={styles.productCard} activeOpacity={0.9}>
-      <Image
-        source={{ uri: `http://192.168.137.1:5000${item.imageUrl}` }}
-        style={styles.productImage}
-      />
-      <View style={styles.productInfo}>
-        <View style={styles.productHeader}>
-          <Text style={styles.productName}>{item.name}</Text>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('root_home/Try', { product: item })}
-          >
-            <Text style={styles.tryText}>Try it</Text>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.productPrice}>Rs.{item.price}.00</Text>
-        <Text style={styles.productDescription}>{item.description}</Text>
-
-        {/* Add to Cart Button */}
-        <TouchableOpacity
-          style={styles.addToCartBtn}
-          onPress={() => handleAddToCart(item)}
-        >
-          <Text style={styles.addToCartText}>Add to Cart</Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
 
   return (
     <SafeAreaView style={styles.container}>
       <FlatList
         data={products}
-        renderItem={renderDress}
         keyExtractor={(item) => item._id}
+        renderItem={({ item }) => <ProductCard product={item} />}
         contentContainerStyle={styles.productList}
       />
     </SafeAreaView>

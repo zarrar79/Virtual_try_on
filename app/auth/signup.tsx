@@ -16,6 +16,7 @@ import {
   View,
   Alert,
 } from 'react-native';
+import { useApi } from '../context/ApiContext';
 
 export default function Signup() {
   const router = useRouter();
@@ -27,6 +28,7 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState('');
 
   const handleSignup = async () => {
+    const BASE_URL = useApi();
     // if(await AsyncStorage.getItem('token'))
     //   return alert('You are Already Logged In');
     if (!fullName || !email || !password || !confirmPassword) {
@@ -40,7 +42,7 @@ export default function Signup() {
     }
 
     try {
-      const response = await fetch('http://192.168.137.196:5000/admin/signup', {
+      const response = await fetch(`${BASE_URL}/admin/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
