@@ -1,20 +1,20 @@
-// context/ApiContext.js
-import React, { createContext, useContext } from "react";
+// context/ApiContext.tsx
+import React, { createContext, useContext, ReactNode } from "react";
 
-// You can load this from .env using expo-constants later
-const BASE_URL = "http://192.168.43.65:5000"; // your backend server
+// Backend URL (can later come from .env)
+const BASE_URL = "http://192.168.137.1:5000";
 
-const ApiContext = createContext(BASE_URL);
+const ApiContext = createContext<string>(BASE_URL);
 
-export const ApiProvider = ({ children }) => {
-  return (
-    <ApiContext.Provider value={BASE_URL}>
-      {children}
-    </ApiContext.Provider>
-  );
+interface ApiProviderProps {
+  children: ReactNode;
+}
+
+export const ApiProvider: React.FC<ApiProviderProps> = ({ children }) => {
+  return <ApiContext.Provider value={BASE_URL}>{children}</ApiContext.Provider>;
 };
 
-// Custom hook for easy usage
-export const useApi = () => {
+// Custom hook to access API base URL
+export const useApi = (): string => {
   return useContext(ApiContext);
 };

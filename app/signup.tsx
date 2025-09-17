@@ -15,6 +15,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { useApi } from './context/ApiContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Signup() {
   const [name, setName] = useState('');
@@ -25,9 +26,10 @@ export default function Signup() {
 
   const BASE_URL = useApi();
 
-  function signUp(data: any) {
+  async function signUp(data: any) {
     const { name, email, password, confirmPassword } = data;
-
+    if (await AsyncStorage.getItem('token'))
+      return alert('You are Already Logged In');
     if (!name || !email || !password || !confirmPassword) {
       alert('Please fill in all fields');
       return;

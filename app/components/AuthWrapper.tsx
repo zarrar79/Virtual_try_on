@@ -1,9 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 
-export default function AuthWrapper({ children }) {
+interface AuthWrapperProps {
+  children: ReactNode;
+}
+
+export default function AuthWrapper({ children }: AuthWrapperProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,5 +44,5 @@ export default function AuthWrapper({ children }) {
     );
   }
 
-  return children;
+  return <>{children}</>;
 }

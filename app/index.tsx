@@ -17,6 +17,7 @@ export default function Home() {
   const router = useRouter();
 
   return (
+    <AuthWrapper>
     <ImageBackground
       source={require('../assets/images/bgImage.png')}
       style={styles.background}
@@ -98,6 +99,7 @@ export default function Home() {
         </View>
       </SafeAreaView>
     </ImageBackground>
+    </AuthWrapper>
   );
 }
 

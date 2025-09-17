@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
-import axios from 'axios';
-import AsyncStorage, { useAsyncStorage } from '@react-native-async-storage/async-storage';
+import axios, { AxiosError } from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import {
@@ -10,14 +10,18 @@ import {
   Platform,
   Pressable,
   SafeAreaView,
-  ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   View,
+  StyleSheet,
   Alert,
 } from 'react-native';
 import { useApi } from '../context/ApiContext';
+
+interface LoginResponse {
+  token: string;
+  [key: string]: any;
+}
 
 export default function Login() {
   const router = useRouter();
@@ -25,32 +29,33 @@ export default function Login() {
   const isLargeScreen = screenWidth > 800;
   const BASE_URL = useApi();
 
-  // States for login
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
 
-  const handleLogin = async () =>{
-    // if(await AsyncStorage.getItem('token'))
-    //   return alert('You are Already Logged In');
+  const handleLogin = async (): Promise<void> => {
+    if (!email || !password) {
+      Alert.alert('Validation', 'Please enter email and password');
+      return;
+    }
+
     try {
-      const response = await axios.post(`${BASE_URL}/admin/login`, {
+      const response = await axios.post<LoginResponse>(`${BASE_URL}/admin/login`, {
         email,
         password,
       });
 
       const { token } = response.data;
 
-      // Save token in AsyncStorage
       await AsyncStorage.setItem('token', token);
 
       Alert.alert('Success', 'Logged in successfully!');
-      router.replace('/'); // Go to home screen
-    } catch (error) {
+      router.replace('/'); // Navigate to home
+    } catch (err) {
+      const error = err as AxiosError<{ message: string }>;
       console.error(error.response?.data || error.message);
       Alert.alert('Error', error.response?.data?.message || 'Login failed');
     }
   };
-
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -100,8 +105,13 @@ export default function Login() {
                   ]}
                   onPress={handleLogin}
                 >
-                  <Text style={styles.buttonText}>Login</Text>
+                  {({ pressed }) => (
+                    <Text style={[styles.buttonText, { color: pressed ? '#000' : '#fff' }]}>
+                      Login
+                    </Text>
+                  )}
                 </Pressable>
+
 
                 <Pressable onPress={() => router.push('/auth/signup')}>
                   <Text style={styles.toggleText}>
@@ -128,45 +138,36 @@ export default function Login() {
   );
 }
 
-
-
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#000',
   },
-
   container: {
     flex: 1,
     flexDirection: 'column',
   },
-
   containerLarge: {
     flexDirection: 'row',
   },
-
   formContainer: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
-
   leftSide: {
     flex: 1,
   },
-
   overlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-
   formWrapper: {
-    width : '70%',
+    width: '70%',
     padding: 20,
     backgroundColor: 'rgba(0,0,0,0.5)',
     borderRadius: 10,
   },
-
   heading: {
     fontSize: 32,
     fontWeight: 'bold',
@@ -174,19 +175,16 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 30,
   },
-
   inputGroup: {
     marginBottom: 14,
     width: '100%',
   },
-
   label: {
     color: '#fff',
     fontSize: 14,
     marginBottom: 6,
     marginLeft: 6,
   },
-
   input: {
     width: '100%',
     backgroundColor: '#fff',
@@ -194,7 +192,6 @@ const styles = StyleSheet.create({
     padding: 14,
     fontSize: 16,
   },
-
   button: {
     width: '100%',
     paddingVertical: 15,
@@ -202,47 +199,29 @@ const styles = StyleSheet.create({
     marginVertical: 24,
     alignItems: 'center',
   },
-
   greenButton: {
-    backgroundColor : '#22c55e'
+    backgroundColor: '#22c55e',
   },
-
   whiteButton: {
     backgroundColor: '#fff',
   },
-
   buttonText: {
     fontSize: 18,
   },
-
-  whiteText: {
-    color: '#fff',
-  },
-
-  redText: {
-    color: '#db3022',
-  },
-
   toggleText: {
     color: '#fff',
     fontSize: 15,
     textAlign: 'center',
   },
-
   toggleLink: {
     fontWeight: 'bold',
     color: '#22c55e',
   },
-
   rightSide: {
     flex: 1,
   },
-
   image: {
     width: '100%',
     height: '100%',
   },
 });
-
-
-

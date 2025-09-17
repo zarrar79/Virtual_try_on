@@ -1,11 +1,21 @@
 import { useEffect, useState } from "react";
 import { View, Text, FlatList, StyleSheet } from "react-native";
 import axios from "axios";
-import { Picker } from "@react-native-picker/picker"; // make sure to install this
+import { Picker } from "@react-native-picker/picker";
+import { useApi } from "./context/ApiContext";
+
+interface Order {
+  _id: string;
+  userName?: string;
+  user?: { name: string };
+  totalAmount: number;
+  status: "pending" | "shipped" | "delivered";
+}
 
 export default function OrdersScreen() {
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const BASE_URL = useApi();
 
   useEffect(() => {
     fetchOrders();
@@ -13,7 +23,7 @@ export default function OrdersScreen() {
 
   const fetchOrders = async () => {
     try {
-      const res = await axios.get("http://192.168.1.22:5000/orders");
+      const res = await axios.get<Order[]>(`${BASE_URL}/orders`);
       setOrders(res.data);
     } catch (err) {
       console.error("Failed to fetch orders:", err);
@@ -22,12 +32,9 @@ export default function OrdersScreen() {
     }
   };
 
-  const updateStatus = async (orderId, newStatus) => {
+  const updateStatus = async (orderId: string, newStatus: Order["status"]) => {
     try {
-      await axios.put(`http://192.168.137.196:5000/orders/${orderId}/status`, {
-        status: newStatus,
-      });
-      // update local state after success
+      await axios.put(`${BASE_URL}/orders/${orderId}/status`, { status: newStatus });
       setOrders((prev) =>
         prev.map((order) =>
           order._id === orderId ? { ...order, status: newStatus } : order
@@ -58,17 +65,20 @@ export default function OrdersScreen() {
     <FlatList
       data={orders}
       keyExtractor={(item) => item._id}
+      contentContainerStyle={{ paddingBottom: 20 }}
       renderItem={({ item }) => (
+
         <View style={styles.orderCard}>
-          <Text style={styles.title}>Order #{item._id}</Text>
-          <Text>User: {item.userName || item.user?.name}</Text>
+          <Text style={styles.title}>
+            Order #{item._id}</Text>
+          <Text>User: {item.userName ?? item.user?.name ?? "Unknown"}</Text>
           <Text>Total: Rs.{item.totalAmount}</Text>
 
           <Text style={{ marginTop: 8 }}>Status:</Text>
           <Picker
             selectedValue={item.status}
-            onValueChange={(value) => updateStatus(item._id, value)}
-            style={styles.picker}
+            onValueChange={(value) => updateStatus(item._id, value as Order["status"])}
+            style={{ width: undefined }} // unset fixed width
           >
             <Picker.Item label="Pending" value="pending" />
             <Picker.Item label="Shipped" value="shipped" />

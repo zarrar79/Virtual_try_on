@@ -14,9 +14,20 @@ import { useNavigation } from '@react-navigation/native';
 import { useApi } from '../context/ApiContext';
 import ProductCard from '../components/ProductCard';
 
+interface Product {
+  _id: string;
+  name: string;
+  brand: string;
+  category: string;
+  price: number;
+  quantity: number;
+  description: string;
+  imageUrl?: string;
+}
+
 export default function Home() {
-  const [products, setProducts] = useState([]);
-  const navigation = useNavigation(); // ✅ call useNavigation here
+  const [products, setProducts] = useState<Product[]>([]);
+  const navigation = useNavigation();
   const BASE_URL = useApi();
 
   useEffect(() => {
@@ -26,22 +37,22 @@ export default function Home() {
       .catch((error) => console.error('Error fetching products:', error));
   }, []);
 
-  // useEffect(() => {
-  //   const handleBackPress = () => {
-  //     Alert.alert('Exit App', 'Do you want to exit the app?', [
-  //       { text: 'Cancel', style: 'cancel' },
-  //       { text: 'Exit', onPress: () => BackHandler.exitApp() },
-  //     ]);
-  //     return true;
-  //   };
+  useEffect(() => {
+    const handleBackPress = () => {
+      Alert.alert('Exit App', 'Do you want to exit the app?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Exit', onPress: () => BackHandler.exitApp() },
+      ]);
+      return true;
+    };
 
-  //   const backHandler = BackHandler.addEventListener(
-  //     'hardwareBackPress',
-  //     handleBackPress
-  //   );
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      handleBackPress
+    );
 
-  //   return () => backHandler.remove();
-  // }, []);
+    return () => backHandler.remove();
+  }, []);
 
 
   return (

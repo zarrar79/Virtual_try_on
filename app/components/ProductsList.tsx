@@ -1,4 +1,3 @@
-// components/ProductList.js
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -12,15 +11,31 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useApi } from "../context/ApiContext";
 
-const ProductsList = ({ refresh, onEdit }) => {
-   const API_BASE = useApi();
-  const [products, setProducts] = useState([]);
+interface Product {
+  _id: string;
+  name: string;
+  brand: string;
+  category: string;
+  price: number;
+  quantity: number;
+  description: string;
+  imageUrl?: string;
+}
+
+interface ProductsListProps {
+  refresh: boolean;
+  onEdit: (product: Product) => void;
+}
+
+const ProductsList: React.FC<ProductsListProps> = ({ refresh, onEdit }) => {
+  const API_BASE = useApi();
+  const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const res = await fetch(`${API_BASE}/products`);
-        const data = await res.json();
+        const data: Product[] = await res.json();
         setProducts(data || []);
       } catch (err) {
         console.error(err);
@@ -29,10 +44,10 @@ const ProductsList = ({ refresh, onEdit }) => {
     fetchProducts();
   }, [refresh]);
 
-  const handleDelete = async (item) => {
+  const handleDelete = async (item: Product) => {
     const token = await AsyncStorage.getItem("token");
     try {
-      const response = await fetch(`${API_BASE}/${item._id}`, {
+      const response = await fetch(`${API_BASE}/products/${item._id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });

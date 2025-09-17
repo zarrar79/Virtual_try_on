@@ -29,8 +29,8 @@ export default function Signup() {
 
   const handleSignup = async () => {
     const BASE_URL = useApi();
-    // if(await AsyncStorage.getItem('token'))
-    //   return alert('You are Already Logged In');
+    if (await AsyncStorage.getItem('token'))
+      return alert('You are Already Logged In');
     if (!fullName || !email || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill all fields');
       return;
@@ -138,14 +138,11 @@ export default function Signup() {
                   ]}
                   onPress={handleSignup}
                 >
-                  <Text
-                    style={({ pressed }) => [
-                      styles.buttonText,
-                      pressed ? styles.redText : styles.whiteText,
-                    ]}
-                  >
-                    Signup
-                  </Text>
+                  {({ pressed }) => (
+                    <Text style={[styles.buttonText, pressed ? styles.redText : styles.whiteText]}>
+                      Signup
+                    </Text>
+                  )}
                 </Pressable>
 
                 <Pressable onPress={() => router.push('/auth')}>
@@ -203,7 +200,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   formWrapper: {
-    width : '100%',
+    width: '100%',
     backgroundColor: 'rgba(0,0,0,0.4)',
     padding: 20,
     borderRadius: 10,

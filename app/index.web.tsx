@@ -3,56 +3,61 @@ import OrdersScreen from "./Orders";
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
-  FlatList,
-  Image,
   ScrollView,
-  Dimensions,
-  Alert,
+  Image,
   Pressable,
-  StyleSheet
+  Alert,
+  StyleSheet,
 } from "react-native";
-import { MaterialCommunityIcons, Feather } from "@expo/vector-icons"
-import { tw } from "./utils/tw"; // Adjust path as needed
+import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import ProductForm from "./components/ProductForm/ProductForm";
 import ProductsList from "./components/ProductsList";
 
+interface Product {
+  _id: string;
+  name: string;
+  brand: string;
+  category: string;
+  price: number;
+  quantity: number;
+  description: string;
+  imageUrl?: string;
+  sku?: string;
+}
+
+type Tab = "create" | "products" | "orders";
 
 export default function AdminScreen() {
-  const [activeTab, setActiveTab] = useState("create");
-  const [refreshProducts, setRefreshProducts] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editProductData, setEditProductData] = useState(null);
+  const [activeTab, setActiveTab] = useState<Tab>("create");
+  const [refreshProducts, setRefreshProducts] = useState<boolean>(false);
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [editProductData, setEditProductData] = useState<Product | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    // This runs only on the client
     async function checkToken() {
       try {
-        const token = await AsyncStorage.getItem('token');
+        const token = await AsyncStorage.getItem("token");
         if (!token) {
-          router.push('/auth');
+          router.push("/auth");
         } else {
-          Alert.alert('Please Login First!');
+          Alert.alert("Please Login First!");
         }
       } catch (err) {
-        console.error('Error reading token', err);
+        console.error("Error reading token", err);
       }
     }
-
     checkToken();
   }, [router]);
 
-
-  const startEdit = (item) => {
+  const startEdit = (item: Product) => {
     setIsEditing(true);
     setEditProductData(item);
     setActiveTab("create");
   };
-
 
   const cancelEdit = () => {
     setIsEditing(false);
@@ -60,29 +65,30 @@ export default function AdminScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={[tw("bg-black min-h-full"), { padding: 24, paddingTop: 50 }]}>
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
       <AdminHeader />
-      <Text style={tw("text-green-500 text-4xl font-extrabold text-center mb-7")}>
-        Welcome Back, Admin
-      </Text>
 
-      <View style={tw("flex-row justify-center flex-wrap mb-7")}>
-        {["create", "products", "orders"].map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            onPress={() => setActiveTab(tab)}
-            style={tw(`px-5 py-3 mx-2 my-2 rounded-lg ${activeTab === tab ? "bg-green-700" : "bg-gray-800"}`)}
-          >
-            <View style={tw("flex-row items-center")}>
-              {tab === "create" && <Feather name="plus-circle" size={20} color="white" />}
-              {tab === "products" && <MaterialCommunityIcons name="basket" size={20} color="white" />}
-              {tab === "orders" && <MaterialCommunityIcons name="cart" size={20} color="white" />}
-              <Text style={tw("text-white text-base ml-2 font-semibold")}>
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+      <Text style={styles.welcomeTitle}>Welcome Back, Admin</Text>
+
+      <View style={styles.tabsContainer}>
+        {["create", "products", "orders"].map((tabName) => {
+          const tab = tabName as Tab;
+          const isActive = activeTab === tab;
+          return (
+            <TouchableOpacity
+              key={tab}
+              onPress={() => setActiveTab(tab)}
+              style={[styles.tabButton, isActive && styles.tabButtonActive]}
+            >
+              <View style={styles.tabContent}>
+                {tab === "create" && <Feather name="plus-circle" size={20} color="#fff" />}
+                {tab === "products" && <MaterialCommunityIcons name="basket" size={20} color="#fff" />}
+                {tab === "orders" && <MaterialCommunityIcons name="cart" size={20} color="#fff" />}
+                <Text style={styles.tabText}>{tab.charAt(0).toUpperCase() + tab.slice(1)}</Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {activeTab === "create" && (
@@ -95,14 +101,16 @@ export default function AdminScreen() {
             setRefreshProducts(!refreshProducts);
           }}
         />
-
       )}
+
       {activeTab === "products" && <ProductsList refresh={refreshProducts} onEdit={startEdit} />}
+
       {activeTab === "orders" && <OrdersScreen />}
     </ScrollView>
   );
 }
-const AdminHeader = () => {
+
+const AdminHeader: React.FC = () => {
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -116,20 +124,15 @@ const AdminHeader = () => {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Profile Section */}
+    <View style={styles.headerContainer}>
       <View style={styles.profileContainer}>
-        <Image
-          source={{ uri: "https://i.pravatar.cc/100?img=3" }}
-          style={styles.avatar}
-        />
+        <Image source={{ uri: "https://i.pravatar.cc/100?img=3" }} style={styles.avatar} />
         <View>
           <Text style={styles.welcomeText}>Welcome Back,</Text>
           <Text style={styles.nameText}>Reyan Iqbal</Text>
         </View>
       </View>
 
-      {/* Logout Button */}
       <Pressable style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutText}>Logout</Text>
       </Pressable>
@@ -138,7 +141,46 @@ const AdminHeader = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  scrollContainer: {
+    padding: 24,
+    paddingTop: 50,
+    backgroundColor: "#000",
+    minHeight: "100%",
+  },
+  welcomeTitle: {
+    fontSize: 32,
+    color: "#22c55e",
+    fontWeight: "800",
+    textAlign: "center",
+    marginBottom: 28,
+  },
+  tabsContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    flexWrap: "wrap",
+    marginBottom: 28,
+  },
+  tabButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    margin: 6,
+    borderRadius: 10,
+    backgroundColor: "#1f1f1f",
+  },
+  tabButtonActive: {
+    backgroundColor: "#16a34a",
+  },
+  tabContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  tabText: {
+    color: "#fff",
+    fontWeight: "600",
+    marginLeft: 6,
+    fontSize: 16,
+  },
+  headerContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
