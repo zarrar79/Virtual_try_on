@@ -17,6 +17,7 @@ import {
   Alert,
 } from 'react-native';
 import { useApi } from '../context/ApiContext';
+import WebAuthWrapper from '../components/WebAuthWrapper';
 
 interface LoginResponse {
   token: string;
@@ -58,6 +59,7 @@ export default function Login() {
   };
 
   return (
+    <WebAuthWrapper>
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="light" translucent backgroundColor="transparent" />
 
@@ -135,6 +137,7 @@ export default function Login() {
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
+    </WebAuthWrapper>
   );
 }
 

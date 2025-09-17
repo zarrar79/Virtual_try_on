@@ -20,6 +20,7 @@ import { useApi } from '../context/ApiContext';
 
 export default function Signup() {
   const router = useRouter();
+  const BASE_URL = useApi();
 
   // State for form fields
   const [fullName, setFullName] = useState('');
@@ -28,7 +29,6 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState('');
 
   const handleSignup = async () => {
-    const BASE_URL = useApi();
     if (await AsyncStorage.getItem('token'))
       return alert('You are Already Logged In');
     if (!fullName || !email || !password || !confirmPassword) {

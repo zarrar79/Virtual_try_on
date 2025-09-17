@@ -11,7 +11,7 @@ export default function RootLayout() {
     <ApiProvider>
     <CartProvider>
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
+        <Stack.Screen name="login" />
         <Stack.Screen
           name="root_home/home"
           options={{
