@@ -5,11 +5,13 @@ const dotenv = require("dotenv");
 const multer = require("multer");
 const bcrypt = require("bcrypt");
 const Stripe = require("stripe");
+const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken");
 const Order = require("./models/Order");
 const fs = require("fs");
 const path = require("path");
 const { InferenceClient } = require("@huggingface/inference");
+require("dns").setDefaultResultOrder("ipv4first");
 
 const User = require("./models/User");
 const Product = require("./models/Product");
@@ -26,6 +28,9 @@ app.use(express.json({ limit: "10mb" })); // or higher if needed
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Serve static files (uploaded images)
 app.use("/uploads", express.static("uploads"));
+app.use(express.urlencoded({ extended: true })); 
+
+const BASE_IP_ADD = "192.168.105.174";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -289,8 +294,8 @@ app.post("/create-checkout-session", async (req, res) => {
         quantity: item.quantity,
       })),
 
-      success_url: "exp://192.168.1.22:8081/--/redirects/success",
-      cancel_url: "exp://192.168.1.22:8081/--/redirects/cancel",
+      success_url: `exp://${BASE_IP_ADD}:8081/--/redirects/success`,
+      cancel_url: `exp://${BASE_IP_ADD}:8081/--/redirects/cancel`,
     });
     const order = new Order({
       user: userId,
@@ -356,6 +361,143 @@ app.get("/orders/:userId", async (req, res) => {
   } catch (err) {
     console.error("Error fetching orders:", err);
     res.status(500).json({ message: "Error fetching orders" });
+  }
+});
+
+// ========================= Forget Password Endpoint ======================= //
+// ✅ Step 1: Forgot Password (Send reset link)
+app.post("/forgot-password", async (req, res) => {
+  const { email } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ msg: "User not found" });
+
+    // Generate JWT reset token (valid 15 mins)
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "15m",
+    });
+
+    user.resetToken = token;
+    user.resetTokenExpiry = Date.now() + 15 * 60 * 1000;
+    await user.save();
+
+    const resetLink = `http://${BASE_IP_ADD}:5000/reset-password/${token}`;
+
+    // Gmail transporter (587 STARTTLS)
+    const transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER, // Gmail address
+        pass: process.env.EMAIL_PASS, // App Password
+      },
+    });
+
+    // console.log(transporter,'--->transporter');
+
+    // Verify connection before sending
+    // await transporter.sendMail({
+    //   from: `"Test App" <${process.env.EMAIL_USER}>`,
+    //   to: "shahzarrar79@gmail.com",
+    //   subject: "Test Email",
+    //   text: "Hello, this is a test email from Nodemailer + Gmail",
+    // });
+
+    transporter.verify((err, success) => {
+      if (err) {
+        console.error("❌ Verify failed:", err);
+      } else {
+        console.log("✅ Gmail SMTP is ready");
+      }
+    });
+
+    // Send mail
+    await transporter.sendMail({
+      from: `"My App" <${process.env.EMAIL_USER}>`,
+      to: user.email,
+      subject: "Password Reset",
+      html: `<p>Click the link to reset your password:</p>
+             <a href="${resetLink}">${resetLink}</a>`,
+    });
+
+    res.json({ msg: "Password reset email sent" });
+  } catch (err) {
+    console.error("❌ Forgot-password error:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+app.get("/reset-password/:token", async (req, res) => {
+  const { token } = req.params;
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findOne({
+      _id: decoded.id,
+      resetToken: token,
+      resetTokenExpiry: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.send("<h3>Invalid or expired link</h3>");
+    }
+
+    // ✅ Serve a simple HTML reset form
+    res.send(`
+      <html>
+        <head>
+          <title>Reset Password</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 40px; background: #f5f5f5; }
+            .container { max-width: 400px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+            input { width: 100%; padding: 10px; margin: 10px 0; }
+            button { padding: 10px; width: 100%; background: #007BFF; color: white; border: none; border-radius: 5px; }
+            button:hover { background: #0056b3; cursor: pointer; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h2>Reset Your Password</h2>
+            <form method="POST" action="/reset-password/${token}">
+              <input type="password" name="password" placeholder="Enter new password" required />
+              <button type="submit">Update Password</button>
+            </form>
+          </div>
+        </body>
+      </html>
+    `);
+  } catch (err) {
+    res.send("<h3>Invalid or expired link</h3>");
+  }
+});
+
+
+app.post("/reset-password/:token", async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findOne({
+      _id: decoded.id,
+      resetToken: token,
+      resetTokenExpiry: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ msg: "Invalid or expired token" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    user.password = hashedPassword;
+    user.resetToken = null;
+    user.resetTokenExpiry = null;
+    await user.save();
+
+    res.json({ msg: "Password updated successfully" });
+  } catch (err) {
+    res.status(400).json({ msg: "Invalid or expired token" });
   }
 });
 

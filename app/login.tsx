@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
@@ -12,6 +12,7 @@ import {
   Platform,
   ScrollView,
   Alert,
+  Modal,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
@@ -21,11 +22,13 @@ export default function Login() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
   const BASE_URL = useApi();
 
-  const handleLogin = async () => {
+  // 🔹 Forgot Password modal state
+  const [forgotVisible, setForgotVisible] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
 
+  const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       Alert.alert('Error', 'Please fill in both email and password fields');
       return;
@@ -34,27 +37,52 @@ export default function Login() {
     try {
       const response = await fetch(`${BASE_URL}/user/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
 
       if (response.ok && data.success) {
-        
         await AsyncStorage.setItem('token', data.token);
         await AsyncStorage.setItem('user', data.user._id);
         await AsyncStorage.setItem('user_name', data.user.name);
 
-        // ✅ Disable back button by replacing the login screen
-        router.replace('/root_home/home'); // <- path must match your file name under `app/`
+        router.replace('/root_home/home');
       } else {
         Alert.alert('Login Failed', data.message || 'Invalid credentials');
       }
     } catch (error) {
       console.error('Login error:', error);
+      Alert.alert('Error', 'Network error or server not reachable');
+    }
+  };
+
+  // 🔹 Handle Forgot Password API call
+  const handleForgotPassword = async () => {
+    if (!forgotEmail.trim()) {
+      Alert.alert('Error', 'Please enter your email');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${BASE_URL}/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        Alert.alert('Success', data.msg || 'Password reset link sent');
+        setForgotVisible(false);
+        setForgotEmail('');
+      } else {
+        Alert.alert('Error', data.msg || 'Unable to send reset link');
+      }
+    } catch (error) {
+      console.error('Forgot password error:', error);
       Alert.alert('Error', 'Network error or server not reachable');
     }
   };
@@ -124,6 +152,11 @@ export default function Login() {
                 )}
               </Pressable>
 
+              {/* 🔹 Forgot Password Button */}
+              <Pressable onPress={() => setForgotVisible(true)}>
+                <Text style={styles.forgotText}>Forgot Password?</Text>
+              </Pressable>
+
               <Pressable onPress={() => router.push('/signup')}>
                 <Text style={styles.toggleText}>
                   Don't have an account?{' '}
@@ -134,6 +167,30 @@ export default function Login() {
           </View>
         </SafeAreaView>
       </KeyboardAvoidingView>
+
+      {/* 🔹 Forgot Password Modal */}
+      <Modal visible={forgotVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Reset Password</Text>
+            <TextInput
+              placeholder="Enter your email"
+              placeholderTextColor="#aaa"
+              style={styles.input}
+              value={forgotEmail}
+              onChangeText={setForgotEmail}
+            />
+            <View style={{ flexDirection: 'row', marginTop: 15 }}>
+              <Pressable style={[styles.button, styles.redButton, { flex: 1, marginRight: 5 }]} onPress={handleForgotPassword}>
+                <Text style={[styles.buttonText, styles.whiteText]}>Submit</Text>
+              </Pressable>
+              <Pressable style={[styles.button, styles.whiteButton, { flex: 1, marginLeft: 5 }]} onPress={() => setForgotVisible(false)}>
+                <Text style={[styles.buttonText, styles.redText]}>Cancel</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ImageBackground>
   );
 }
@@ -158,15 +215,8 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 30,
   },
-  inputGroup: {
-    marginBottom: 14,
-  },
-  label: {
-    color: '#fff',
-    fontSize: 14,
-    marginBottom: 6,
-    marginLeft: 6,
-  },
+  inputGroup: { marginBottom: 14 },
+  label: { color: '#fff', fontSize: 14, marginBottom: 6, marginLeft: 6 },
   input: {
     width: '100%',
     backgroundColor: '#fff',
@@ -176,36 +226,39 @@ const styles = StyleSheet.create({
   },
   button: {
     paddingVertical: 15,
-    paddingHorizontal: 60,
     borderRadius: 9,
-    marginVertical: 24,
-    width: '100%',
+    marginVertical: 12,
     alignItems: 'center',
   },
-  redButton: {
-    backgroundColor: '#db3022',
-    borderColor: '#fff',
-  },
-  whiteButton: {
-    backgroundColor: '#fff',
-    borderColor: '#db3022',
-  },
-  buttonText: {
-    fontSize: 18,
-  },
-  whiteText: {
+  redButton: { backgroundColor: '#db3022' },
+  whiteButton: { backgroundColor: '#fff' },
+  buttonText: { fontSize: 18 },
+  whiteText: { color: '#fff' },
+  redText: { color: '#db3022' },
+  toggleText: { color: '#fff', fontSize: 15, textAlign: 'center' },
+  toggleLink: { fontWeight: 'bold', color: '#db3022' },
+  forgotText: {
     color: '#fff',
-  },
-  redText: {
-    color: '#db3022',
-  },
-  toggleText: {
-    color: '#fff',
-    fontSize: 15,
     textAlign: 'center',
+    marginBottom: 10,
+    textDecorationLine: 'underline',
   },
-  toggleLink: {
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBox: {
+    width: '85%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#db3022',
+    marginBottom: 15,
+    textAlign: 'center',
   },
 });
