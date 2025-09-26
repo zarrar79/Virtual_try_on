@@ -1,8 +1,8 @@
 // context/ApiContext.tsx
-import React, { createContext, useContext, ReactNode } from "react";
+import React, { createContext, ReactNode, useContext } from "react";
 
 // Backend URL (can later come from .env)
-const BASE_URL = "http://192.168.1.18:5000";
+const BASE_URL = "http://10.12.97.205:5000";
 
 const ApiContext = createContext<string>(BASE_URL);
 

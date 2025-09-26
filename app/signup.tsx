@@ -1,21 +1,21 @@
-import React from 'react';
-import { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ImageBackground,
-  SafeAreaView,
-  Pressable,
-  TextInput,
-  KeyboardAvoidingView,
-  ScrollView,
-  Platform,
-} from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { useRouter } from 'expo-router';
-import { useApi } from './context/ApiContext';
+import React, { useEffect, useState } from 'react';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import {
+  ImageBackground,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { useApi } from './context/ApiContext';
 
 export default function Signup() {
   const [name, setName] = useState('');
@@ -26,10 +26,19 @@ export default function Signup() {
 
   const BASE_URL = useApi();
 
+  useEffect(()=>{
+( async()=>{     if (await AsyncStorage.getItem('token'))
+    
+      {
+        router.replace('/root_home/home');
+      return;
+
+      }})()
+  },[router])
+
   async function signUp(data: any) {
     const { name, email, password, confirmPassword } = data;
-    if (await AsyncStorage.getItem('token'))
-      return alert('You are Already Logged In');
+  
     if (!name || !email || !password || !confirmPassword) {
       alert('Please fill in all fields');
       return;
