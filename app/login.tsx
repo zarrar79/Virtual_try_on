@@ -28,15 +28,15 @@ export default function Login() {
   const [forgotVisible, setForgotVisible] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
 
-    useEffect(()=>{
-  ( async()=>{     if (await AsyncStorage.getItem('token'))
-      
-        {
-          router.replace('/root_home/home');
+  useEffect(() => {
+    (async () => {
+      if (await AsyncStorage.getItem('token')) {
+        router.replace('/root_home/home');
         return;
-  
-        }})()
-    },[router])
+
+      }
+    })()
+  }, [router])
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       Alert.alert('Error', 'Please fill in both email and password fields');

@@ -6,8 +6,11 @@ const multer = require("multer");
 const bcrypt = require("bcrypt");
 const Stripe = require("stripe");
 const nodemailer = require("nodemailer");
+const bodyParser = require("body-parser");
 const jwt = require("jsonwebtoken");
 const Order = require("./models/Order");
+const Wishlist = require("./models/Wishlist");
+const Review = require("./models/Review");
 const fs = require("fs");
 const path = require("path");
 const { InferenceClient } = require("@huggingface/inference");
@@ -21,16 +24,73 @@ const { log } = require("console");
 
 dotenv.config();
 
+
+
 const app = express();
+
+app.post(
+  "/api/stripe/webhook",
+  express.raw({ type: "application/json" }),
+  async (req, res) => {
+    const sig = req.headers["stripe-signature"];
+    let event;
+
+    try {
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        sig,
+        'whsec_d9c6070523b2506347cd4e8f5105d2bd65834ce2e7610ed263adec56024701a9'
+      );
+    } catch (err) {
+      console.error("❌ Webhook signature verification failed:", err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    console.log("✅ Event received:", event.type);
+
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object;
+      const metadata = session.metadata || {};
+      const cart = metadata.cart ? JSON.parse(metadata.cart) : [];
+
+      const order = new Order({
+        user: metadata.userId,
+        userName: metadata.userName,
+        items: cart.map((item) => ({
+          productId: item._id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          imageUrl: item.imageUrl,
+        })),
+        totalAmount: session.amount_total / 100, // Stripe amounts are in cents
+        currency: session.currency,
+        status: "paid",
+        paymentMethod: "Card",
+      });
+
+      try {
+        await order.save();
+        console.log("✅ Order saved after payment success");
+      } catch (err) {
+        console.error("❌ Order save failed:", err);
+      }
+    }
+
+    // Always acknowledge Stripe
+    res.json({ received: true });
+  }
+);
+
 app.use(cors());
 app.use(express.json());
 app.use(express.json({ limit: "10mb" })); // or higher if needed
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Serve static files (uploaded images)
 app.use("/uploads", express.static("uploads"));
-app.use(express.urlencoded({ extended: true })); 
+app.use(express.urlencoded({ extended: true }));
 
-const BASE_IP_ADD = "192.168.1.18";
+const BASE_IP_ADD = "192.168.1.5";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -160,6 +220,64 @@ app.post("/admin/login", async (req, res) => {
   }
 });
 
+// ========================= Review Routes ========================= //
+
+app.post("/review", async (req, res) => {
+  try {
+    const { userId, productId, orderId, rating, comment } = req.body;
+
+    // check if order exists & delivered
+    const order = await Order.findOne({ _id: orderId, user: userId, status: "delivered" });
+    if (!order) return res.status(400).json({ message: "Order not delivered or not found." });
+
+    // check if product belongs to that order
+    const itemExists = order.items.some((item) => item.productId.toString() === productId);
+    if (!itemExists) return res.status(400).json({ message: "Product not in this order." });
+
+    // create review
+    const review = await Review.create({
+      user: userId,
+      product: productId,
+      order: orderId,
+      rating,
+      comment,
+    });
+
+    res.status(201).json(review);
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({ message: "Review already exists for this product." });
+    }
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/reviews/product/:productId
+app.get("/review/product/:productId", async (req, res) => {
+  try {
+    const reviews = await Review.find({ product: req.params.productId })
+      .populate("user", "name email")
+      .sort({ createdAt: -1 });
+
+    res.json(reviews);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/reviews/check/:orderId/:productId/:userId
+app.get("/review/check/:orderId/:productId/:userId", async (req, res) => {
+  try {
+    const { orderId, productId, userId } = req.params;
+    const review = await Review.findOne({ order: orderId, product: productId, user: userId });
+    res.json({ reviewed: !!review });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+
+
 // ========================= Product Routes ========================= //
 
 // CREATE product with image
@@ -269,13 +387,10 @@ app.delete("/products/:id", authMiddleware, async (req, res) => {
 app.post("/create-checkout-session", async (req, res) => {
   try {
     const { cart, userId, user_name } = req.body;
-    console.log(userId, "userId");
 
     if (!cart || cart.length === 0) {
       return res.status(400).json({ error: "Cart is empty" });
     }
-
-    // ✅ Log cart to verify structure
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -286,33 +401,102 @@ app.post("/create-checkout-session", async (req, res) => {
           product_data: {
             name: item.name,
           },
-          unit_amount: Math.round(item.price * 100 * 10), // ×10 for testing
+          unit_amount: Math.round(item.price * 100), // Stripe expects cents
         },
         quantity: item.quantity,
       })),
-
-      success_url: `exp://${BASE_IP_ADD}:8081/--/redirects/success`,
+      success_url: `exp://${BASE_IP_ADD}:8081/--/redirects/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `exp://${BASE_IP_ADD}:8081/--/redirects/cancel`,
-    });
-    const order = new Order({
-      user: userId,
-      userName: user_name,
-      items: cart.map((item) => ({
-        productId: item._id,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        imageUrl: item.imageUrl,
-      })),
-      totalAmount: session.amount_total / 100, // convert from cents
-      currency: session.currency,
-      status: "paid",
+      metadata: {
+        userId,
+        userName: user_name,
+        cart: JSON.stringify(cart), // attach cart info so webhook can use it
+      },
     });
 
-    await order.save();
     res.json({ url: session.url });
   } catch (err) {
     console.error("Stripe error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 👇 mount webhook BEFORE any error handlers, AFTER json but override with raw
+
+// ========================= Wishlist Endpoints ======================= //
+
+// Add product to wishlist
+app.post("/wishlist/add", async (req, res) => {
+  try {
+    const { userId, productId } = req.body;
+    // console.log("REQ BODY:", req.body);
+
+    let wishlist = await Wishlist.findOne({ user: userId });
+
+    if (!wishlist) {
+      wishlist = new Wishlist({ user: userId, products: [productId] });
+    } else if (!wishlist.products.includes(productId)) {
+      wishlist.products.push(productId);
+    }
+
+    await wishlist.save();
+    await wishlist.populate("products");
+
+    res.status(200).json(wishlist);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get wishlist of a user
+app.post("/wishlist/get", async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const wishlist = await Wishlist.findOne({ user: userId }).populate(
+      "products"
+    );
+    res.status(200).json(wishlist || { products: [] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Remove product from wishlist
+app.post("/wishlist/remove", async (req, res) => {
+  try {
+    const { userId, productId } = req.body;
+    const wishlist = await Wishlist.findOne({ user: userId });
+
+    if (!wishlist)
+      return res.status(404).json({ message: "Wishlist not found" });
+
+    wishlist.products = wishlist.products.filter(
+      (p) => p.toString() !== productId
+    );
+
+    await wishlist.save();
+    await wishlist.populate("products");
+
+    res.status(200).json(wishlist);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Clear wishlist
+app.post("/wishlist/clear", async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const wishlist = await Wishlist.findOne({ user: userId });
+
+    if (!wishlist)
+      return res.status(404).json({ message: "Wishlist not found" });
+
+    wishlist.products = [];
+    await wishlist.save();
+
+    res.status(200).json(wishlist);
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
@@ -358,6 +542,56 @@ app.get("/orders/:userId", async (req, res) => {
   } catch (err) {
     console.error("Error fetching orders:", err);
     res.status(500).json({ message: "Error fetching orders" });
+  }
+});
+
+app.post("/order/cod", async (req, res) => {
+  try {
+    const { userId, user_name, cart } = req.body;
+    console.log("REQ BODY:", req.body);
+
+    // Validate request
+    if (!userId || !user_name || !Array.isArray(cart) || cart.length === 0) {
+      return res.status(400).json({ message: "Invalid order data" });
+    }
+
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: "Invalid userId format" });
+    }
+
+    // Calculate total amount
+    const totalAmount = cart.reduce(
+      (sum, item) => sum + item.price * (item.quantity || 1),
+      0
+    );
+
+    // Create order
+    const order = new Order({
+      user: userId,
+      userName: user_name,
+      items: cart.map((item) => ({
+        productId: item._id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        imageUrl: item.imageUrl,
+      })),
+      totalAmount,
+      currency: "PKR",
+      status: "pending", // COD orders are pending until confirmed
+      paymentMethod: "COD",
+    });
+
+    await order.save();
+
+    res.status(201).json({
+      message: "Order placed successfully with Cash on Delivery",
+      order,
+    });
+  } catch (error) {
+    console.error("COD Order Error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 
@@ -468,7 +702,6 @@ app.get("/reset-password/:token", async (req, res) => {
     res.send("<h3>Invalid or expired link</h3>");
   }
 });
-
 
 app.post("/reset-password/:token", async (req, res) => {
   const { token } = req.params;

@@ -1,10 +1,13 @@
 import { View, Text } from "react-native";
 import { useEffect } from "react";
 import { router } from "expo-router";
+import { useCart } from "../context/CartContext";
 
 export default function SuccessScreen() {
+  const  { setCart }  = useCart();
   useEffect(() => {
     const timer = setTimeout(() => {
+      setCart([]);
       router.replace("/root_home/home"); // 👈 navigates back to home
     }, 3000);
 

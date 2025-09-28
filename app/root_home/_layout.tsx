@@ -72,6 +72,16 @@ export default function DrawerLayout() {
                     ),
                 }}
             />
+            <Drawer.Screen
+                name="wishlist"
+                options={{
+                    drawerLabel: 'Wishlist',
+                    title: 'Wishlist',
+                    drawerIcon: ({ focused, color, size }) => (
+                        <Ionicons name={focused ? 'heart' : 'heart-outline'} size={size} color={color} />
+                    ),
+                }}
+            />
 
         </Drawer>
     );

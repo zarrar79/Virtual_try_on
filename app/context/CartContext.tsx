@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState } from 'react';
 type CartContextType = {
     cart: any[];
     addToCart: (product: any) => void;
+    setCart: React.Dispatch<React.SetStateAction<any[]>>;
     removeFromCart : (productId: string)=>void;
 };
 
@@ -37,7 +38,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
 
     return (
-        <CartContext.Provider value={{ cart, addToCart, removeFromCart }}>
+        <CartContext.Provider value={{ cart, addToCart, removeFromCart, setCart }}>
             {children}
         </CartContext.Provider>
 
