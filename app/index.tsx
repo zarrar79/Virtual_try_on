@@ -15,6 +15,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import ProductForm from "./components/ProductForm/ProductForm";
 import ProductsList from "./components/ProductsList";
+import { useApi } from "./context/ApiContext";
 
 interface Product {
   _id: string;
@@ -28,7 +29,15 @@ interface Product {
   sku?: string;
 }
 
-type Tab = "create" | "products" | "orders";
+interface Review {
+  _id: string;
+  user: { name: string };
+  product: { name: string };
+  rating: number;
+  comment: string;
+}
+
+type Tab = "create" | "products" | "orders" | "reviews"; // Added reviews tab
 
 export default function AdminScreen() {
   const [activeTab, setActiveTab] = useState<Tab>("create");
@@ -71,7 +80,7 @@ export default function AdminScreen() {
       <Text style={styles.welcomeTitle}>Welcome Back, Admin</Text>
 
       <View style={styles.tabsContainer}>
-        {["create", "products", "orders"].map((tabName) => {
+        {["create", "products", "orders", "reviews"].map((tabName) => {
           const tab = tabName as Tab;
           const isActive = activeTab === tab;
           return (
@@ -84,6 +93,7 @@ export default function AdminScreen() {
                 {tab === "create" && <Feather name="plus-circle" size={20} color="#fff" />}
                 {tab === "products" && <MaterialCommunityIcons name="basket" size={20} color="#fff" />}
                 {tab === "orders" && <MaterialCommunityIcons name="cart" size={20} color="#fff" />}
+                {tab === "reviews" && <MaterialCommunityIcons name="star" size={20} color="#fff" />}
                 <Text style={styles.tabText}>{tab.charAt(0).toUpperCase() + tab.slice(1)}</Text>
               </View>
             </TouchableOpacity>
@@ -106,10 +116,13 @@ export default function AdminScreen() {
       {activeTab === "products" && <ProductsList refresh={refreshProducts} onEdit={startEdit} />}
 
       {activeTab === "orders" && <OrdersScreen />}
+
+      {activeTab === "reviews" && <ReviewsList />}
     </ScrollView>
   );
 }
 
+// Admin header
 const AdminHeader: React.FC = () => {
   const router = useRouter();
 
@@ -136,6 +149,47 @@ const AdminHeader: React.FC = () => {
       <Pressable style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutText}>Logout</Text>
       </Pressable>
+    </View>
+  );
+};
+
+// ReviewsList component
+const ReviewsList: React.FC = () => {
+  const BASE_URL = useApi();
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/all-reviews`); // replace with your backend API
+        const data = await res.json();
+        console.log(data,'---->data');
+        
+        setReviews(data);
+      } catch (err) {
+        console.error("Error fetching reviews:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchReviews();
+  }, []);
+
+  if (loading) return <Text style={{ color: "#fff", textAlign: "center", marginTop: 20 }}>Loading reviews...</Text>;
+
+  if (reviews.length === 0) return <Text style={{ color: "#fff", textAlign: "center", marginTop: 20 }}>No reviews yet.</Text>;
+
+  return (
+    <View style={{ marginTop: 20, paddingBottom: 50 }}>
+      {reviews.map((review) => (
+        <View key={review._id} style={styles.reviewCard}>
+          <Text style={styles.reviewText}><Text style={{ fontWeight: "bold" }}>Customer:</Text> {review.user.name}</Text>
+          <Text style={styles.reviewText}><Text style={{ fontWeight: "bold" }}>Product:</Text> {review.product?.name}</Text>
+          <Text style={styles.reviewText}><Text style={{ fontWeight: "bold" }}>Rating:</Text> {review.rating} ★</Text>
+          <Text style={styles.reviewText}><Text style={{ fontWeight: "bold" }}>Comment:</Text> {review.comment || "No comment"}</Text>
+        </View>
+      ))}
     </View>
   );
 };
@@ -218,5 +272,15 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "600",
+  },
+  reviewCard: {
+    backgroundColor: "#1f1f1f",
+    padding: 15,
+    marginVertical: 6,
+    borderRadius: 10,
+  },
+  reviewText: {
+    color: "#fff",
+    marginBottom: 4,
   },
 });

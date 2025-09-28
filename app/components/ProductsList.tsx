@@ -73,7 +73,7 @@ const ProductsList: React.FC<ProductsListProps> = ({ refresh, onEdit }) => {
           <View style={styles.productCard}>
             {item.imageUrl && (
               <Image
-                source={{ uri: `${API_BASE}${item.imageUrl}` }}
+                source={{ uri: `${API_BASE}${item.imageUrl}`}}
                 style={styles.productImage}
                 resizeMode="cover"
               />

@@ -87,7 +87,7 @@ app.use(express.json());
 app.use(express.json({ limit: "10mb" })); // or higher if needed
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Serve static files (uploaded images)
-app.use("/uploads", express.static("uploads"));
+app.use("/backend/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(express.urlencoded({ extended: true }));
 
 const BASE_IP_ADD = "192.168.1.5";
@@ -221,6 +221,20 @@ app.post("/admin/login", async (req, res) => {
 });
 
 // ========================= Review Routes ========================= //
+
+app.get("/all-reviews", async (req, res) => {
+  try {
+    const reviews = await Review.find()
+      .populate({ path: "user", select: "name email" }) // populate user name and email
+      .populate({ path: "product", select: "name brand category" }) // populate product name, brand, etc.
+      .populate({ path: "order", select: "status createdAt" }); // optional: populate order info
+
+    res.status(200).json(reviews);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 app.post("/review", async (req, res) => {
   try {
