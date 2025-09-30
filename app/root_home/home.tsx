@@ -1,12 +1,21 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, SafeAreaView, FlatList, Alert, BackHandler, StyleSheet } from 'react-native';
+import { useNavigation } from "@react-navigation/native";
+import { View, SafeAreaView, FlatList, Alert, BackHandler, StyleSheet, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ProductCard from '../components/ProductCard';
 import { useApi } from '../context/ApiContext';
 import ReviewPopup from '@/components/ReviewPopup';
+import { navigate } from 'expo-router/build/global-state/routing';
+import ProductCustomization from './ProductCustomization';
 
 export default function Home() {
+  // If using TypeScript, define the navigation type for your stack
+  // Replace 'RootStackParamList' with your actual stack param list type
+  // import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+  // type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
+  // const navigation = useNavigation<HomeScreenNavigationProp>();
+  const navigation = useNavigation<any>();
   const BASE_URL = useApi();
   const [products, setProducts] = useState([]);
   const [userId, setUserId] = useState('');
@@ -107,9 +116,17 @@ export default function Home() {
       <FlatList
         data={products}
         keyExtractor={(item) => item._id}
-        renderItem={({ item }) => <ProductCard product={item} />}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            onPress={() => navigation.navigate("ProductCustomization",{ product: item })}
+            activeOpacity={0.8}
+          >
+            <ProductCard product={item} />
+          </TouchableOpacity>
+        )}
         contentContainerStyle={styles.productList}
       />
+
 
       {reviewProduct && (
         <ReviewPopup

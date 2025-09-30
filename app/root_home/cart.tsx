@@ -159,7 +159,7 @@ export default function CartScreen() {
                   <Text style={styles.cartQty}>Quantity: {item.quantity}</Text>
                 </View>
 
-                {/* ❌ Delete Button */}
+                {/* Delete Button */}
                 <TouchableOpacity
                   style={styles.deleteBtn}
                   onPress={() => removeFromCart(item._id)}
@@ -169,6 +169,7 @@ export default function CartScreen() {
               </View>
             )}
           />
+
         )}
       </View>
     </SafeAreaView>
@@ -181,6 +182,13 @@ const styles = StyleSheet.create({
     padding: 0,
     backgroundColor: "#f5f5f5",
   },
+
+  cartOption: {
+  fontSize: 14,
+  color: "#444",
+  marginTop: 2,
+},
+
 
   // ✅ Checkout Button in Header
   checkoutBtn: {

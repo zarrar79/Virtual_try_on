@@ -90,7 +90,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use("/backend/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(express.urlencoded({ extended: true }));
 
-const BASE_IP_ADD = "192.168.1.5";
+const BASE_IP_ADD = "192.168.1.11";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -564,23 +564,19 @@ app.post("/order/cod", async (req, res) => {
     const { userId, user_name, cart } = req.body;
     console.log("REQ BODY:", req.body);
 
-    // Validate request
     if (!userId || !user_name || !Array.isArray(cart) || cart.length === 0) {
       return res.status(400).json({ message: "Invalid order data" });
     }
 
-    // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ message: "Invalid userId format" });
     }
 
-    // Calculate total amount
     const totalAmount = cart.reduce(
       (sum, item) => sum + item.price * (item.quantity || 1),
       0
     );
 
-    // Create order
     const order = new Order({
       user: userId,
       userName: user_name,
@@ -590,10 +586,12 @@ app.post("/order/cod", async (req, res) => {
         price: item.price,
         quantity: item.quantity,
         imageUrl: item.imageUrl,
+        size: item.selectedSize || null,
+        color: item.selectedColor || null,
       })),
       totalAmount,
       currency: "PKR",
-      status: "pending", // COD orders are pending until confirmed
+      status: "pending",
       paymentMethod: "COD",
     });
 
