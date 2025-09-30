@@ -96,7 +96,7 @@ export default function Wishlist() {
                     renderItem={({ item }) => (
                         <View style={styles.card}>
                             <Image
-                                source={{ uri: item.imageUrl }}
+                                source={{ uri: `${BASE_URL}${item.imageUrl}` }}
                                 style={styles.image}
                             />
                             <Text style={styles.name}>{item.name}</Text>

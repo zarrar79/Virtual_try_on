@@ -98,11 +98,6 @@ const ProductCustomization: React.FC = () => {
           style={styles.image}
           resizeMode="contain"
         />
-        {selectedColor && selectedColor !== "None" && (
-          <View
-            style={[styles.overlay, { backgroundColor: selectedColor.toLowerCase() }]}
-          />
-        )}
       </View>
 
       <Text style={styles.brand}>Brand: {product.brand}</Text>
