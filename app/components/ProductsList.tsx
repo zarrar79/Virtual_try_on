@@ -6,7 +6,7 @@ import {
   Image,
   TouchableOpacity,
   Alert,
-  StyleSheet,
+  Dimensions,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useApi } from "../context/ApiContext";
@@ -28,10 +28,28 @@ interface ProductsListProps {
   onEdit: (product: Product) => void;
 }
 
-const ProductsList: React.FC<ProductsListProps> = ({ refresh, onEdit }) => {
+const ProductsList: React.FC<ProductsListProps> = ({ refresh, onEdit}) => {
   const API_BASE = useApi();
   const [products, setProducts] = useState<Product[]>([]);
+  const [numColumns, setNumColumns] = useState<number>(4);
+  const [cardWidth, setCardWidth] = useState<number>(0);
 
+  // ✅ Dynamically adjust columns and card width based on screen size
+  useEffect(() => {
+    const updateColumns = () => {
+      const screenWidth = Dimensions.get("window").width;
+      const columns = screenWidth < 768 ? 2 : 4;
+      setNumColumns(columns);
+      const spacing = 20;
+      setCardWidth((screenWidth - spacing * (columns + 1)) / columns);
+    };
+
+    updateColumns();
+    const subscription = Dimensions.addEventListener("change", updateColumns);
+    return () => subscription?.remove();
+  }, []);
+
+  // ✅ Fetch products
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -45,6 +63,7 @@ const ProductsList: React.FC<ProductsListProps> = ({ refresh, onEdit }) => {
     fetchProducts();
   }, [refresh]);
 
+  // ✅ Delete product
   const handleDelete = async (item: Product) => {
     const token = await AsyncStorage.getItem("token");
     try {
@@ -64,30 +83,41 @@ const ProductsList: React.FC<ProductsListProps> = ({ refresh, onEdit }) => {
     }
   };
 
+  // ✅ Render component
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Product List</Text>
+
       <FlatList
+        key={numColumns} // re-render when columns change
         data={products}
+        numColumns={numColumns}
         keyExtractor={(item) => item._id}
+        columnWrapperStyle={{ justifyContent: "space-between", marginBottom: 15 }}
+        contentContainerStyle={styles.gridContainer}
         renderItem={({ item }) => (
-          <View style={styles.productCard}>
+          <View style={[styles.productCard, { width: cardWidth }]}>
             {item.imageUrl && (
               <Image
-                source={{ uri: `${API_BASE}${item.imageUrl}`}}
+                source={{ uri: `${API_BASE}${item.imageUrl}` }}
                 style={styles.productImage}
                 resizeMode="cover"
               />
             )}
             <View style={styles.productInfo}>
-              <View style={styles.infoText}>
-                <Text style={styles.productName}>{item.name}</Text>
-                <Text style={styles.productDetails}>
-                  Brand: {item.brand} | Price: Rs. {item.price}
-                </Text>
-                <Text style={styles.productDetails}>Qty: {item.quantity}</Text>
-                <Text style={styles.productDescription}>{item.description}</Text>
-              </View>
+              <Text style={styles.productName}>{item.name}</Text>
+              <Text style={styles.productDetails}>
+                Brand: {item.brand} | Rs. {item.price}
+              </Text>
+              <Text style={styles.productDetails}>Qty: {item.quantity}</Text>
+              <Text
+                style={styles.productDescription}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+              >
+                {item.description}
+              </Text>
+
               <View style={styles.actionButtons}>
                 <TouchableOpacity onPress={() => onEdit(item)}>
                   <Text style={styles.editButton}>Edit</Text>

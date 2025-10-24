@@ -13,7 +13,7 @@ import AdminHeader from "./components/AdminHeader";
 import ProductForm from "./components/ProductForm/ProductForm";
 import ProductsList from "./components/ProductsList";
 import ReviewsList from "./components/Review";
-import styles from "./CSS/index.styles";
+import styles from "./CSS/Index.styles";
 import OrdersScreen from "./Orders";
 
 interface Product {

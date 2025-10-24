@@ -2,10 +2,14 @@ import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#1f1f1f",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    flex: 1,
+    paddingHorizontal: 15,
+    paddingTop: 10,
+    backgroundColor: "#101010",
+  },
+  gridContainer: {
+    justifyContent: "space-between",
+    paddingBottom: 50,
   },
   header: {
     fontSize: 20,
