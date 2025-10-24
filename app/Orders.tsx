@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
-import { View, Text, FlatList, StyleSheet } from "react-native";
-import axios from "axios";
 import { Picker } from "@react-native-picker/picker";
+import axios from "axios";
+import { useEffect, useState } from "react";
+import { FlatList, Text, View } from "react-native";
 import { useApi } from "./context/ApiContext";
+import styles from "./CSS/OrdersWeb.styles";
 
 interface Order {
   _id: string;
@@ -89,27 +90,3 @@ export default function OrdersScreen() {
     />
   );
 }
-
-const styles = StyleSheet.create({
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  orderCard: {
-    padding: 12,
-    margin: 8,
-    borderRadius: 10,
-    backgroundColor: "#fff",
-    elevation: 2,
-  },
-  title: {
-    fontWeight: "bold",
-    fontSize: 16,
-    marginBottom: 4,
-  },
-  picker: {
-    height: 40,
-    width: "100%",
-  },
-});

@@ -90,7 +90,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use("/backend/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(express.urlencoded({ extended: true }));
 
-const BASE_IP_ADD = "192.168.1.11";
+const BASE_IP_ADD = "192.168.137.1";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
