@@ -87,10 +87,10 @@ app.use(express.json());
 app.use(express.json({ limit: "10mb" })); // or higher if needed
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Serve static files (uploaded images)
-app.use("/backend/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/backend", express.static(path.join(__dirname, "/")));
 app.use(express.urlencoded({ extended: true }));
 
-const BASE_IP_ADD = "192.168.137.1";
+const BASE_IP_ADD = "192.168.71.48";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -365,8 +365,8 @@ app.get("/products/:id", authMiddleware, async (req, res) => {
 // UPDATE product
 app.put("/products/:id", authMiddleware, async (req, res) => {
   try {
-    const { name, description, price } = req.body;
-    const updateData = { name, description, price };
+    const { name, description, price, brand } = req.body;
+    const updateData = { name, description, price, brand };
 
     if (req.file) {
       updateData.image = `/uploads/${req.file.filename}`;

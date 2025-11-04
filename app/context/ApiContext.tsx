@@ -2,7 +2,7 @@
 import React, { createContext, ReactNode, useContext } from "react";
 
 // Backend URL (can later come from .env)
-const BASE_URL = "http://192.168.137.1:5000";
+const BASE_URL = "http://192.168.71.48:5000";
 
 const ApiContext = createContext<string>(BASE_URL);
 

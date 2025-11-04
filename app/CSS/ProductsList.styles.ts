@@ -1,71 +1,86 @@
 import { StyleSheet } from "react-native";
 
-const styles = StyleSheet.create({
+export default StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 15,
+    paddingHorizontal: 20,
     paddingTop: 10,
-    backgroundColor: "#101010",
-  },
-  gridContainer: {
-    justifyContent: "space-between",
-    paddingBottom: 50,
   },
   header: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#fff",
-    marginBottom: 12,
+    fontSize: 22,
+    fontWeight: "700",
+    color: "white",
+    marginVertical: 10,
+    textAlign: "center",
+  },
+  gridContainer: {
+    paddingBottom: 80,
+  },
+  columnWrapper: {
+    justifyContent: "flex-start", // ✅ keeps alignment neat
+    marginBottom: 20,
+    gap: 3,
   },
   productCard: {
-    backgroundColor: "#2a2a2a",
-    borderRadius: 12,
-    marginBottom: 12,
-    padding: 12,
-    flexDirection: "row",
-    alignItems: "flex-start",
+    backgroundColor: "#b1bfd3",
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+    overflow: "hidden",
   },
   productImage: {
-    width: 96,
-    height: 96,
-    borderRadius: 8,
-    marginRight: 12,
+    width: "100%",
+    height: 280,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
   },
   productInfo: {
-    flex: 1,
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  infoText: {
-    flex: 1,
-    paddingRight: 8,
+    padding: 12,
   },
   productName: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#111",
+    marginBottom: 4,
   },
   productDetails: {
-    color: "#ccc",
     fontSize: 14,
+    color: "#555",
+  },
+  productQuantity: {
+    fontSize: 13,
+    color: "#777",
+    marginTop: 4,
   },
   productDescription: {
-    color: "#aaa",
-    fontSize: 12,
+    fontSize: 13,
+    color: "#666",
+    marginTop: 6,
   },
   actionButtons: {
+    flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-end",
+    marginTop: 12,
   },
   editButton: {
-    color: "#4da6ff",
-    fontWeight: "600",
-    marginBottom: 8,
+    backgroundColor: "#3498db",
+    color: "#fff",
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    fontWeight: "500",
+    overflow: "hidden",
   },
   deleteButton: {
-    color: "#ff4d4d",
-    fontWeight: "600",
+    backgroundColor: "#e74c3c",
+    color: "#fff",
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    fontWeight: "500",
+    overflow: "hidden",
   },
 });
-
-export default styles;

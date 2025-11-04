@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   Alert,
   Dimensions,
+  Animated,
+  Pressable,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useApi } from "../context/ApiContext";
@@ -28,19 +30,19 @@ interface ProductsListProps {
   onEdit: (product: Product) => void;
 }
 
-const ProductsList: React.FC<ProductsListProps> = ({ refresh, onEdit}) => {
+const ProductsList: React.FC<ProductsListProps> = ({ refresh, onEdit }) => {
   const API_BASE = useApi();
   const [products, setProducts] = useState<Product[]>([]);
   const [numColumns, setNumColumns] = useState<number>(4);
   const [cardWidth, setCardWidth] = useState<number>(0);
 
-  // ✅ Dynamically adjust columns and card width based on screen size
+  // 🔹 Responsive grid setup
   useEffect(() => {
     const updateColumns = () => {
       const screenWidth = Dimensions.get("window").width;
       const columns = screenWidth < 768 ? 2 : 4;
       setNumColumns(columns);
-      const spacing = 20;
+      const spacing = 24;
       setCardWidth((screenWidth - spacing * (columns + 1)) / columns);
     };
 
@@ -49,7 +51,7 @@ const ProductsList: React.FC<ProductsListProps> = ({ refresh, onEdit}) => {
     return () => subscription?.remove();
   }, []);
 
-  // ✅ Fetch products
+  // 🔹 Fetch products
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -63,7 +65,7 @@ const ProductsList: React.FC<ProductsListProps> = ({ refresh, onEdit}) => {
     fetchProducts();
   }, [refresh]);
 
-  // ✅ Delete product
+  // 🔹 Delete product
   const handleDelete = async (item: Product) => {
     const token = await AsyncStorage.getItem("token");
     try {
@@ -83,52 +85,84 @@ const ProductsList: React.FC<ProductsListProps> = ({ refresh, onEdit}) => {
     }
   };
 
-  // ✅ Render component
+  // 🔹 Render Product Card
+  const renderCard = ({ item }: { item: Product }) => {
+    const scaleAnim = new Animated.Value(1);
+
+    const onPressIn = () => {
+      Animated.spring(scaleAnim, {
+        toValue: 1.05,
+        useNativeDriver: true,
+      }).start();
+    };
+
+    const onPressOut = () => {
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 3,
+        useNativeDriver: true,
+      }).start();
+    };
+
+    return (
+      <Animated.View
+        style={[
+          styles.productCard,
+          { width: cardWidth, transform: [{ scale: scaleAnim }] },
+        ]}
+      >
+        <Pressable onPressIn={onPressIn} onPressOut={onPressOut}>
+          {item.imageUrl && (
+            <Image
+              source={{
+                uri: `${API_BASE}/${item.imageUrl}`, // ✅ guaranteed valid image
+                // uri: "https://placehold.co/400x300?text=No+Image&font=roboto", // ✅ guaranteed valid image
+              }}
+              style={styles.productImage}
+              resizeMode="cover"
+            />
+
+          )}
+          <View style={styles.productInfo}>
+            <Text style={styles.productName}>{item.name}</Text>
+            <Text style={styles.productDetails}>
+              {item.brand} • Rs. {item.price}
+            </Text>
+            <Text style={styles.productQuantity}>Qty: {item.quantity}</Text>
+            <Text
+              style={styles.productDescription}
+              numberOfLines={2}
+              ellipsizeMode="tail"
+            >
+              {item.description}
+            </Text>
+
+            <View style={styles.actionButtons}>
+              <TouchableOpacity onPress={() => onEdit(item)}>
+                <Text style={styles.editButton}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => handleDelete(item)}>
+                <Text style={styles.deleteButton}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Pressable>
+      </Animated.View>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Product List</Text>
 
       <FlatList
-        key={numColumns} // re-render when columns change
+        key={numColumns}
         data={products}
         numColumns={numColumns}
         keyExtractor={(item) => item._id}
-        columnWrapperStyle={{ justifyContent: "space-between", marginBottom: 15 }}
+        columnWrapperStyle={styles.columnWrapper}
         contentContainerStyle={styles.gridContainer}
-        renderItem={({ item }) => (
-          <View style={[styles.productCard, { width: cardWidth }]}>
-            {item.imageUrl && (
-              <Image
-                source={{ uri: `${API_BASE}${item.imageUrl}` }}
-                style={styles.productImage}
-                resizeMode="cover"
-              />
-            )}
-            <View style={styles.productInfo}>
-              <Text style={styles.productName}>{item.name}</Text>
-              <Text style={styles.productDetails}>
-                Brand: {item.brand} | Rs. {item.price}
-              </Text>
-              <Text style={styles.productDetails}>Qty: {item.quantity}</Text>
-              <Text
-                style={styles.productDescription}
-                numberOfLines={2}
-                ellipsizeMode="tail"
-              >
-                {item.description}
-              </Text>
-
-              <View style={styles.actionButtons}>
-                <TouchableOpacity onPress={() => onEdit(item)}>
-                  <Text style={styles.editButton}>Edit</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleDelete(item)}>
-                  <Text style={styles.deleteButton}>Delete</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        )}
+        renderItem={renderCard}
       />
     </View>
   );

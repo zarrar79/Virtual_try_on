@@ -13,20 +13,20 @@ interface ProductFormProps {
 }
 
 const ProductForm: React.FC<ProductFormProps> = ({ isEditing, editProductData, onSuccess, cancelEdit }) => {
-    const { product, image, handleChange, pickImage, handleSubmit: submitForm } =
+    const { product, image, handleChange, pickImage, handleSubmit } =
         useProductForm({ isEditing, editProductData, onSuccess });
     const MIN_AMOUNT_PKR = 5000;
 
-    const handleSubmit = () => {
+    const handleSubmitButton = () => {
         // Required fields validation
         if (!product.name || !product.brand || !product.category || !product.price || !product.quantity) {
             return Alert.alert("Validation Error", "Please fill all required fields.");
         }
 
-        // Image validation
-        if (!image) {
-            return Alert.alert("Validation Error", "Please select an image.");
-        }
+        // // Image validation
+        // if (!image) {
+        //     return Alert.alert("Validation Error", "Please select an image.");
+        // }
 
         // Quantity validation for Stripe minimum
         const totalAmount = Number(product.price) * Number(product.quantity);
@@ -37,7 +37,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ isEditing, editProductData, o
             );
         }
 
-        submitForm();
+        handleSubmit();
     };
 
 
@@ -77,7 +77,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ isEditing, editProductData, o
 
             <ImagePickerField image={image} onPick={pickImage} />
 
-            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+            <TouchableOpacity style={styles.submitButton} onPress={handleSubmitButton}>
                 <Text style={styles.submitButtonText}>
                     {isEditing ? "Update Product" : "Add Product"}
                 </Text>

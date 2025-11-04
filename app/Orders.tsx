@@ -1,7 +1,7 @@
 import { Picker } from "@react-native-picker/picker";
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { FlatList, Text, View } from "react-native";
+import { FlatList, Pressable, Text, View } from "react-native";
 import { useApi } from "./context/ApiContext";
 import styles from "./CSS/OrdersWeb.styles";
 
@@ -17,6 +17,7 @@ export default function OrdersScreen() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const BASE_URL = useApi();
+  const [hovered, setHovered] = useState<string | null>(null);
 
   useEffect(() => {
     fetchOrders();
@@ -66,26 +67,44 @@ export default function OrdersScreen() {
     <FlatList
       data={orders}
       keyExtractor={(item) => item._id}
-      contentContainerStyle={{ paddingBottom: 20 }}
+      numColumns={3} // 👈 3 cards per row
+      columnWrapperStyle={{
+        justifyContent: "space-between",
+        marginBottom: 20,
+      }}
+      contentContainerStyle={{
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+      }}
       renderItem={({ item }) => (
+        <Pressable
+  onPressIn={() => setHovered(item._id)}   // simulate hover start
+  onPressOut={() => setHovered(null)}      // simulate hover end
+  style={({ pressed }) => [
+    styles.orderCard,
+    (pressed || hovered === item._id) && styles.orderCardHover,
+  ]}
+>
 
-        <View style={styles.orderCard}>
-          <Text style={styles.title}>
-            Order #{item._id}</Text>
-          <Text>User: {item.userName ?? item.user?.name ?? "Unknown"}</Text>
-          <Text>Total: Rs.{item.totalAmount}</Text>
+          <Text style={styles.title}>Order #{item._id}</Text>
+          <Text style={styles.userText}>
+            User: {item.userName ?? item.user?.name ?? "Unknown"}
+          </Text>
+          <Text style={styles.totalText}>Total: Rs.{item.totalAmount}</Text>
 
-          <Text style={{ marginTop: 8 }}>Status:</Text>
+          <Text style={styles.statusLabel}>Status:</Text>
           <Picker
             selectedValue={item.status}
-            onValueChange={(value) => updateStatus(item._id, value as Order["status"])}
-            style={{ width: undefined }} // unset fixed width
+            onValueChange={(value) =>
+              updateStatus(item._id, value as Order["status"])
+            }
+            style={styles.statusPicker}
           >
             <Picker.Item label="Pending" value="pending" />
             <Picker.Item label="Shipped" value="shipped" />
             <Picker.Item label="Delivered" value="delivered" />
           </Picker>
-        </View>
+        </Pressable>
       )}
     />
   );

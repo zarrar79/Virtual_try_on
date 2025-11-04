@@ -130,7 +130,7 @@ export const useProductForm = ({ isEditing, editProductData, onSuccess }: UsePro
             Alert.alert("Error", "You are not authenticated.");
             return;
         }
-
+        
         try {
             const res = await fetch(
                 isEditing ? `${BASE_URL}/products/${product._id}` : `${BASE_URL}/products`,
