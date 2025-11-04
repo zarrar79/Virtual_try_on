@@ -87,7 +87,7 @@ app.use(express.json());
 app.use(express.json({ limit: "10mb" })); // or higher if needed
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Serve static files (uploaded images)
-app.use("/backend", express.static(path.join(__dirname, "/")));
+app.use("/backend/uploads", express.static(path.join(__dirname, "/uploads")));
 app.use(express.urlencoded({ extended: true }));
 
 const BASE_IP_ADD = "192.168.71.48";

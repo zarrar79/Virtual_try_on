@@ -115,7 +115,7 @@ const ProductsList: React.FC<ProductsListProps> = ({ refresh, onEdit }) => {
           {item.imageUrl && (
             <Image
               source={{
-                uri: `${API_BASE}/${item.imageUrl}`, // ✅ guaranteed valid image
+                uri: `${API_BASE}${item.imageUrl}`, // ✅ guaranteed valid image
                 // uri: "https://placehold.co/400x300?text=No+Image&font=roboto", // ✅ guaranteed valid image
               }}
               style={styles.productImage}
