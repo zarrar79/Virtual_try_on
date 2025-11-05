@@ -18,6 +18,7 @@ const styles = StyleSheet.create({
     width: "30%", // 👈 fits 3 per row with space-between
     minWidth: 250,
     alignSelf: "flex-start",
+    marginTop: 10,
   },
 
   title: {
@@ -76,6 +77,58 @@ const styles = StyleSheet.create({
   pickerHover: {
     borderColor: "#ffffff",
     backgroundColor: "#3a3a3a",
+  },
+  filterContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    paddingVertical: 15,
+    backgroundColor: "#111",
+    borderBottomWidth: 1,
+    borderBottomColor: "#333",
+  },
+
+  filterButton: {
+    marginHorizontal: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: "#222",
+  },
+  filterBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#111",
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#333",
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 10,
+    backgroundColor: "#222",
+    color: "#fff",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 15,
+    fontSize: 16,
+    width: 12,
+  },
+
+  activeFilterButton: {
+    backgroundColor: "#0db760",
+  },
+
+  filterText: {
+    color: "#ccc",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+
+  activeFilterText: {
+    color: "#fff",
+    fontWeight: "bold",
   },
 });
 export default styles;

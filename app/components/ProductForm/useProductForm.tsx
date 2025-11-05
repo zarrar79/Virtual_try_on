@@ -5,6 +5,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useApi } from "../../context/ApiContext";
+import Toast from "react-native-toast-message";
 
 type Product = {
     _id?: string;
@@ -147,14 +148,36 @@ export const useProductForm = ({ isEditing, editProductData, onSuccess }: UsePro
             const data = await res.json();
 
             if (res.ok) {
-                Alert.alert("Success", isEditing ? "Product updated!" : "Product added!");
+                // Alert.alert("Success", isEditing ? "Product updated!" : "Product added!");
+                Toast.show({
+                        type: "success",
+                        text1: isEditing
+                          ? "Product updated successfully!"
+                          : "Product added successfully!",
+                        position: "top",
+                        visibilityTime: 2500,
+                      });
                 resetForm();
                 onSuccess();
             } else {
                 Alert.alert("Error", data.message || "Failed to save product.");
+                Toast.show({
+                        type: "error",
+                        text1: "Failed to save product!",
+                        position: "top",
+                        visibilityTime: 2500,
+                      });
             }
         } catch (err) {
             console.error(err);
+            Toast.show({
+                        type: "error",
+                        text1: isEditing
+                          ? "Failed to update product."
+                          : "Failed to add product.",
+                        position: "top",
+                        visibilityTime: 2500,
+                      });
             Alert.alert("Error", "Something went wrong.");
         }
     };

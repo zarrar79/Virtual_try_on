@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -9,10 +9,12 @@ import {
   Dimensions,
   Animated,
   Pressable,
+  TextInput,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useApi } from "../context/ApiContext";
 import styles from "../CSS/ProductsList.styles";
+import Toast from "react-native-toast-message";
 
 interface Product {
   _id: string;
@@ -33,10 +35,13 @@ interface ProductsListProps {
 const ProductsList: React.FC<ProductsListProps> = ({ refresh, onEdit }) => {
   const API_BASE = useApi();
   const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [numColumns, setNumColumns] = useState<number>(4);
   const [cardWidth, setCardWidth] = useState<number>(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  // 🔹 Responsive grid setup
+  // ✅ Responsive grid setup
   useEffect(() => {
     const updateColumns = () => {
       const screenWidth = Dimensions.get("window").width;
@@ -51,13 +56,15 @@ const ProductsList: React.FC<ProductsListProps> = ({ refresh, onEdit }) => {
     return () => subscription?.remove();
   }, []);
 
-  // 🔹 Fetch products
+  // ✅ Fetch products
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const res = await fetch(`${API_BASE}/products`);
         const data: Product[] = await res.json();
         setProducts(data || []);
+        setFilteredProducts(data || []);
+        triggerFadeIn();
       } catch (err) {
         console.error(err);
       }
@@ -65,7 +72,28 @@ const ProductsList: React.FC<ProductsListProps> = ({ refresh, onEdit }) => {
     fetchProducts();
   }, [refresh]);
 
-  // 🔹 Delete product
+  // ✅ Fade animation
+  const triggerFadeIn = () => {
+    fadeAnim.setValue(0);
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  // ✅ Search filter
+  const handleSearch = (text: string) => {
+    setSearchQuery(text);
+    const filtered = products.filter(
+      (p) =>
+        p.name.toLowerCase().includes(text.toLowerCase()) ||
+        p.brand.toLowerCase().includes(text.toLowerCase())
+    );
+    setFilteredProducts(filtered);
+  };
+
+  // ✅ Delete product
   const handleDelete = async (item: Product) => {
     const token = await AsyncStorage.getItem("token");
     try {
@@ -76,32 +104,37 @@ const ProductsList: React.FC<ProductsListProps> = ({ refresh, onEdit }) => {
       const data = await response.json();
       if (response.ok) {
         Alert.alert("Deleted", data.message);
+        Toast.show({
+                        type: "success",
+                        text1: "Product deleted successfully!",
+                        position: "top",
+                        visibilityTime: 2500,
+                      });
         setProducts((prev) => prev.filter((p) => p._id !== item._id));
+        setFilteredProducts((prev) => prev.filter((p) => p._id !== item._id));
       } else {
         Alert.alert("Error", data.message || "Delete failed");
       }
     } catch (error) {
+      Toast.show({
+                        type: "error",
+                        text1: "Failed to delete product!",
+                        position: "top",
+                        visibilityTime: 2500,
+                      });
       console.error(error);
     }
   };
 
-  // 🔹 Render Product Card
+  // ✅ Render each product card
   const renderCard = ({ item }: { item: Product }) => {
     const scaleAnim = new Animated.Value(1);
 
     const onPressIn = () => {
-      Animated.spring(scaleAnim, {
-        toValue: 1.05,
-        useNativeDriver: true,
-      }).start();
+      Animated.spring(scaleAnim, { toValue: 1.05, useNativeDriver: true }).start();
     };
-
     const onPressOut = () => {
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 3,
-        useNativeDriver: true,
-      }).start();
+      Animated.spring(scaleAnim, { toValue: 1, friction: 3, useNativeDriver: true }).start();
     };
 
     return (
@@ -114,15 +147,12 @@ const ProductsList: React.FC<ProductsListProps> = ({ refresh, onEdit }) => {
         <Pressable onPressIn={onPressIn} onPressOut={onPressOut}>
           {item.imageUrl && (
             <Image
-              source={{
-                uri: `${API_BASE}${item.imageUrl}`, // ✅ guaranteed valid image
-                // uri: "https://placehold.co/400x300?text=No+Image&font=roboto", // ✅ guaranteed valid image
-              }}
+              source={{ uri: `${API_BASE}${item.imageUrl}` }}
               style={styles.productImage}
               resizeMode="cover"
             />
-
           )}
+
           <View style={styles.productInfo}>
             <Text style={styles.productName}>{item.name}</Text>
             <Text style={styles.productDetails}>
@@ -153,17 +183,32 @@ const ProductsList: React.FC<ProductsListProps> = ({ refresh, onEdit }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Product List</Text>
+      <Text style={styles.header}>Products List</Text>
 
-      <FlatList
-        key={numColumns}
-        data={products}
-        numColumns={numColumns}
-        keyExtractor={(item) => item._id}
-        columnWrapperStyle={styles.columnWrapper}
-        contentContainerStyle={styles.gridContainer}
-        renderItem={renderCard}
-      />
+      {/* ✅ Search Bar */}
+      <View style={styles.searchContainer}>
+        <TextInput
+          placeholder="Search by Name or Brand..."
+          placeholderTextColor="#aaa"
+          style={styles.searchInput}
+          value={searchQuery}
+          onChangeText={handleSearch}
+        />
+      </View>
+      <Animated.View style={{ opacity: fadeAnim, flex: 1 }}>
+        <FlatList
+          key={numColumns}
+          data={filteredProducts}
+          numColumns={numColumns}
+          keyExtractor={(item) => item._id}
+          columnWrapperStyle={styles.columnWrapper}
+          contentContainerStyle={styles.gridContainer}
+          renderItem={renderCard}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>No products found.</Text>
+          }
+        />
+      </Animated.View>
     </View>
   );
 };

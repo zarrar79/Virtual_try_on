@@ -29,6 +29,7 @@ export default StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 4,
+    marginTop: 10,
     overflow: "hidden",
   },
   productImage: {
@@ -82,5 +83,28 @@ export default StyleSheet.create({
     borderRadius: 8,
     fontWeight: "500",
     overflow: "hidden",
+  },
+  searchContainer: {
+    width: "100%",
+    alignSelf: "center",
+    marginBottom: 16,
+    backgroundColor: "#111",
+    borderRadius: 12,
+    borderColor: "#333",
+    borderWidth: 1,
+  },
+  searchInput: {
+    color: "#fff",
+    fontSize: 18,
+    width: "100%",
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+  },
+  emptyText: {
+    textAlign: "center",
+    color: "#aaa",
+    marginTop: 40,
+    fontSize: 16,
+    fontStyle: "italic",
   },
 });

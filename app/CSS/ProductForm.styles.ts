@@ -6,6 +6,10 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         padding: 20,
         marginBottom: 20,
+        width: "45%",
+        marginTop: 25,
+        marginLeft: "auto",
+        marginRight: "auto",
     },
     title: {
         color: "#ffffff",
@@ -18,7 +22,7 @@ const styles = StyleSheet.create({
     },
     label: {
         color: "#D1D5DB", // gray-300
-        fontSize: 14,
+        fontSize: 16,
         fontWeight: "500",
         marginBottom: 4,
     },
@@ -26,9 +30,10 @@ const styles = StyleSheet.create({
         backgroundColor: "#27272a",
         color: "#ffffff",
         paddingHorizontal: 12,
-        paddingVertical: 8,
+        paddingVertical: 16,
         borderRadius: 8,
         borderWidth: 1,
+        fontSize: 15,
         borderColor: "#10B981",
     },
     description: {

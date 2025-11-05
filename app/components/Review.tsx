@@ -1,10 +1,7 @@
 import { useEffect, useState } from "react";
 import { useApi } from "../context/ApiContext";
 import { View, Text, FlatList, Pressable } from "react-native";
-
-interface ReviewsListProps {
-  styles: any; // ✅ styles will be passed as prop
-}
+import styles from "../CSS/Review.styles";
 
 interface Review {
   _id: string;
@@ -14,7 +11,7 @@ interface Review {
   comment: string;
 }
 
-const ReviewsList: React.FC<ReviewsListProps> = ({ styles }) => {
+const ReviewsList = () => {
   const BASE_URL = useApi();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -49,37 +46,50 @@ const ReviewsList: React.FC<ReviewsListProps> = ({ styles }) => {
       </Text>
     );
 
+  // 🧩 Split reviews into columns (e.g., 3 columns)
+  const numColumns = 4;
+  const columnData = Array.from({ length: numColumns }, (_, colIndex) =>
+    reviews.filter((_, i) => i % numColumns === colIndex)
+  );
+
   return (
-    <FlatList
-      data={reviews}
-      keyExtractor={(item) => item._id}
-      numColumns={3}
-      columnWrapperStyle={{ justifyContent: "space-between", marginBottom: 15 }}
-      contentContainerStyle={{ paddingBottom: 50, paddingHorizontal: 10 }}
-      renderItem={({ item }) => (
-        <Pressable
-          onPressIn={() => setHovered(item._id)}
-          onPressOut={() => setHovered(null)}
-          style={[
-            styles.reviewCard,
-            hovered === item._id && styles.reviewCardHover,
-          ]}
-        >
-          <Text style={styles.reviewTitle}>{item.product?.name}</Text>
+    <View
+      style={{
+        flexDirection: "row",
+        justifyContent: "space-between",
+        paddingHorizontal: 10,
+        paddingBottom: 50,
+      }}
+    >
+      {columnData.map((column, colIndex) => (
+        <View key={colIndex} style={{ flex: 1, gap: 3 }}>
+          {column.map((item) => (
+            <Pressable
+              key={item._id}
+              onPressIn={() => setHovered(item._id)}
+              onPressOut={() => setHovered(null)}
+              style={[
+                styles.reviewCard,
+                hovered === item._id && styles.reviewCardHover,
+              ]}
+            >
+              <Text style={styles.reviewTitle}>{item.product?.name}</Text>
 
-          <View style={styles.reviewMeta}>
-            <Text style={styles.reviewAuthor}>👤 {item.user.name}</Text>
-            <Text style={styles.reviewRating}>
-              ⭐ {item.rating.toFixed(1)} / 5
-            </Text>
-          </View>
+              <View style={styles.reviewMeta}>
+                <Text style={styles.reviewAuthor}>👤 {item.user.name}</Text>
+                <Text style={styles.reviewRating}>
+                  ⭐ {item.rating.toFixed(1)} / 5
+                </Text>
+              </View>
 
-          <Text style={styles.reviewComment}>
-            {item.comment || "No comment provided."}
-          </Text>
-        </Pressable>
-      )}
-    />
+              <Text style={styles.reviewComment}>
+                {item.comment || "No comment provided."}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ))}
+    </View>
   );
 };
 
