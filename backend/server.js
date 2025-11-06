@@ -267,17 +267,19 @@ app.post("/review", async (req, res) => {
 });
 
 // GET /api/reviews/product/:productId
-app.get("/review/product/:productId", async (req, res) => {
+ app.get("/review/product/:productId", async (req, res) => {
   try {
     const reviews = await Review.find({ product: req.params.productId })
-      .populate("user", "name email")
+      .populate("user", "name email") // populate user name and email only
       .sort({ createdAt: -1 });
 
+    console.log(reviews, "--->reviews");
     res.json(reviews);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
+
 
 // GET /api/reviews/check/:orderId/:productId/:userId
 app.get("/review/check/:orderId/:productId/:userId", async (req, res) => {

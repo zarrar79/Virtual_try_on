@@ -1,5 +1,14 @@
-import React, { useState } from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Alert } from "react-native";
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -13,6 +22,17 @@ interface Product {
   price: number;
   description: string;
   imageUrl?: string;
+}
+
+interface Review {
+  _id: string;
+  rating: number;
+  comment: string;
+  user: {
+    name: string;
+    email: string;
+  };
+  createdAt: string;
 }
 
 const ProductCustomization: React.FC = () => {
@@ -37,6 +57,31 @@ const ProductCustomization: React.FC = () => {
   const [selectedColor, setSelectedColor] = useState<string | undefined>(undefined);
   const [quantity, setQuantity] = useState<number>(1);
 
+  // ---------------- NEW STATE FOR REVIEWS ----------------
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // ---------------- FETCH REVIEWS ON MOUNT ----------------
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        const response = await axios.get(`${BASE_URL}/review/product/${product._id}`);
+        setReviews(response.data);
+        console.log(reviews);
+
+      } catch (err: any) {
+        setError("Failed to load reviews");
+        console.error("Error fetching reviews:", err);
+      } finally {
+        setLoadingReviews(false);
+      }
+    };
+
+    fetchReviews();
+  }, [product._id]);
+
+  // ---------------- EXISTING ORDER HANDLER ----------------
   const handlePlaceCODOrder = async () => {
     const userId = await AsyncStorage.getItem("user");
     const user_name = await AsyncStorage.getItem("user_name");
@@ -88,14 +133,14 @@ const ProductCustomization: React.FC = () => {
     );
   };
 
+  // ---------------- UI RENDER ----------------
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.name}>{product.name}</Text>
 
-      {/* Image with color overlay */}
       <View style={styles.imageWrapper}>
         <Image
-          source={{ uri: `${BASE_URL}${product.imageUrl}`}}
+          source={{ uri: `${BASE_URL}${product.imageUrl}` }}
           style={styles.image}
           resizeMode="contain"
         />
@@ -145,7 +190,7 @@ const ProductCustomization: React.FC = () => {
                 styles.colorSwatch,
                 color !== "None" && { backgroundColor: color.toLowerCase() },
                 selectedColor === color && styles.selectedColorSwatch,
-                color === "None" && selectedColor === "None" && styles.selectedNoneColor
+                color === "None" && selectedColor === "None" && styles.selectedNoneColor,
               ]}
               onPress={() => setSelectedColor(selectedColor === color ? undefined : color)}
             />
@@ -156,7 +201,47 @@ const ProductCustomization: React.FC = () => {
       <TouchableOpacity style={styles.confirmBtn} onPress={handlePlaceCODOrder}>
         <Text style={styles.confirmBtnText}>Place Order (COD)</Text>
       </TouchableOpacity>
+
+      {/* ---------------- REVIEWS SECTION ---------------- */}
+      <View style={{ marginTop: 24, marginBottom: 16 }}>
+        <Text style={styles.sectionTitle}>Customer Reviews</Text>
+
+        {loadingReviews ? (
+          <ActivityIndicator size="small" color="#000" style={{ marginTop: 10 }} />
+        ) : error ? (
+          <Text style={styles.errorText}>{error}</Text>
+        ) : reviews.length === 0 ? (
+          <Text style={styles.noReviewsText}>No reviews yet. Be the first to review!</Text>
+        ) : (
+          reviews.map((rev) => {
+            const firstLetter = rev.user?.name ? rev.user.name.charAt(0).toUpperCase() : "A";
+            return (
+              <View key={rev._id} style={styles.reviewCard}>
+                <View style={styles.reviewerHeader}>
+                  {/* Avatar Circle */}
+                  <View style={styles.avatarCircle}>
+                    <Text style={styles.avatarText}>{firstLetter}</Text>
+                  </View>
+
+                  {/* Reviewer Name + Rating */}
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.reviewerName}>{rev.user?.name || "Anonymous"}</Text>
+                    <Text style={styles.rating}>⭐ {rev.rating}/5</Text>
+                  </View>
+                </View>
+
+                <Text style={styles.comment}>{rev.comment}</Text>
+                <Text style={styles.date}>
+                  {new Date(rev.createdAt).toLocaleDateString()}
+                </Text>
+              </View>
+            );
+          })
+
+        )}
+      </View>
     </ScrollView>
   );
 };
+
 export default ProductCustomization;
