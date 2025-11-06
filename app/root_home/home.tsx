@@ -83,19 +83,43 @@ export default function Home() {
 
   // Fetch products when screen focuses
   useFocusEffect(
-    useCallback(() => {
-      const fetchProducts = async () => {
-        try {
-          const res = await fetch(`${BASE_URL}/products`);
-          const data = await res.json();
-          setProducts(data);
-        } catch (err) {
-          console.error('Error fetching products:', err);
-        }
-      };
-      fetchProducts();
-    }, [BASE_URL])
-  );
+  useCallback(() => {
+    const fetchProductsWithRatings = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/products`);
+        const data = await res.json();
+
+        // Fetch reviews and calculate avg rating for each product
+        const productsWithRatings = await Promise.all(
+          data.map(async (product: any) => {
+            try {
+              const reviewRes = await fetch(`${BASE_URL}/review/product/${product._id}`);
+              const reviews = await reviewRes.json();
+
+              if (reviews.length > 0) {
+                const avg =
+                  reviews.reduce((acc: number, r: any) => acc + (r.rating || 0), 0) / reviews.length;
+                product.avgRating = parseFloat(avg.toFixed(1)); // e.g. 4.3
+              } else {
+                product.avgRating = 0;
+              }
+            } catch (err) {
+              console.error(`Error fetching reviews for product ${product._id}:`, err);
+              product.avgRating = 0;
+            }
+            return product;
+          })
+        );
+
+        setProducts(productsWithRatings);
+      } catch (err) {
+        console.error("Error fetching products:", err);
+      }
+    };
+
+    fetchProductsWithRatings();
+  }, [BASE_URL])
+);
 
   // Handle back button
   useEffect(() => {
@@ -120,7 +144,7 @@ export default function Home() {
             onPress={() => navigation.navigate("ProductCustomization",{ product: item })}
             activeOpacity={0.8}
           >
-            <ProductCard product={item} />
+            <ProductCard product={item} avgRating={item.avgRating} />
           </TouchableOpacity>
         )}
         contentContainerStyle={styles.productList}
