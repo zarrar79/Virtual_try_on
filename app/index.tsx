@@ -1,92 +1,43 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
   Animated,
   Alert,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
 } from "react-native";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { useApi } from "./context/ApiContext";
+import styles from "./ProductPage.style";
+import Adminstyles from "./CSS/Index.styles";
+import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
 import AdminHeader from "./components/AdminHeader";
-import ProductForm from "./components/ProductForm/ProductForm";
-import ProductsList from "./components/ProductsList";
-import ReviewsList from "./components/Review";
-import OrdersScreen from "./Orders";
-import styles from "./CSS/Index.styles";
-import Toast, { BaseToast, ErrorToast } from "react-native-toast-message";
 
 interface Product {
   _id: string;
   name: string;
-  brand: string;
-  category: string;
-  price: number;
-  quantity: number;
   description: string;
-  imageUrl?: string;
-  sku?: string;
+  price: number;
+  brand: string;
+  quantity: number;
+  category: string;
+  imageUrls: string[];
 }
 
-type Tab = "create" | "products" | "orders" | "reviews";
+const ProductsPageWeb: React.FC = () => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const BASE_URL = useApi();
+  const navigation = useNavigation();
 
-const toastConfig = {
-  success: (props: any) => (
-    <BaseToast
-      {...props}
-      style={{ borderLeftColor: "#4CAF50", backgroundColor: "#4CAF50" }}
-      contentContainerStyle={{ paddingHorizontal: 15 }}
-      text1Style={{
-        fontSize: 15,
-        fontWeight: "medium",
-        color: "white",
-      }}
-      text2Style={{
-        color: "#ddd",
-      }}
-    />
-  ),
-  error: (props: any) => (
-    <ErrorToast
-      {...props}
-      style={{ borderLeftColor: "#f44336", backgroundColor: "#f44336" }}
-      text1Style={{
-        fontSize: 15,
-        fontWeight: "bold",
-        color: "white",
-      }}
-      text2Style={{
-        color: "#ddd",
-      }}
-    />
-  ),
-};
-
-export default function AdminScreen() {
-  const [activeTab, setActiveTab] = useState<Tab>("create");
-  const [refreshProducts, setRefreshProducts] = useState<boolean>(false);
-  const [isEditing, setIsEditing] = useState<boolean>(false);
-  const [editProductData, setEditProductData] = useState<Product | null>(null);
-  const router = useRouter();
-
-  // ✅ Fade animation for tab switching
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  const triggerFadeIn = () => {
-    fadeAnim.setValue(0);
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 600,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  // ✅ Fade on mount and tab change
-  useEffect(() => {
-    triggerFadeIn();
-  }, [activeTab]);
+  // Animation refs
+  const fadeAnim = useRef<Animated.Value[]>([]);
+  const slideAnim = useRef<Animated.Value[]>([]);
 
   useEffect(() => {
     async function checkToken() {
@@ -104,159 +55,130 @@ export default function AdminScreen() {
     checkToken();
   }, [router]);
 
-  const startEdit = (item: Product) => {
-    setIsEditing(true);
-    setEditProductData(item);
-    setActiveTab("create");
-  };
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/products`);
+        if (!res.ok) throw new Error("Failed to fetch products");
+        const data = await res.json();
+        setProducts(data);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
+  }, []);
 
-  const cancelEdit = () => {
-    setIsEditing(false);
-    setEditProductData(null);
-  };
+  // Initialize animations for each product
+  useEffect(() => {
+    if (products.length > 0) {
+      fadeAnim.current = products.map(() => new Animated.Value(0));
+      slideAnim.current = products.map(() => new Animated.Value(20));
 
-  // ✅ Animated hover states for each tab
-  const hoverScales = {
-    create: useRef(new Animated.Value(1)).current,
-    products: useRef(new Animated.Value(1)).current,
-    orders: useRef(new Animated.Value(1)).current,
-    reviews: useRef(new Animated.Value(1)).current,
-  };
+      // Run animations with staggered delay
+      const animations = products.map((_, index) =>
+        Animated.parallel([
+          Animated.timing(fadeAnim.current[index], {
+            toValue: 1,
+            duration: 600,
+            useNativeDriver: false, 
+          }),
+          Animated.timing(slideAnim.current[index], {
+            toValue: 0,
+            duration: 600,
+            useNativeDriver: false,
+          }),
+        ])
+      );
 
-  const hoverBackgrounds = {
-    create: useRef(new Animated.Value(0)).current,
-    products: useRef(new Animated.Value(0)).current,
-    orders: useRef(new Animated.Value(0)).current,
-    reviews: useRef(new Animated.Value(0)).current,
-  };
+      Animated.stagger(100, animations).start();
+    }
+  }, [products]);
 
-  const handleHoverIn = (tab: Tab) => {
-    Animated.parallel([
-      Animated.spring(hoverScales[tab], {
-        toValue: 1.07,
-        friction: 5,
-        tension: 80,
-        useNativeDriver: true,
-      }),
-      Animated.timing(hoverBackgrounds[tab], {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: false,
-      }),
-    ]).start();
-  };
+  if (loading)
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color="#22c55e" />
+        <Text style={styles.loaderText}>Loading products...</Text>
+      </View>
+    );
 
-  const handleHoverOut = (tab: Tab) => {
-    Animated.parallel([
-      Animated.spring(hoverScales[tab], {
-        toValue: 1,
-        friction: 5,
-        tension: 80,
-        useNativeDriver: true,
-      }),
-      Animated.timing(hoverBackgrounds[tab], {
-        toValue: 0,
-        duration: 150,
-        useNativeDriver: false,
-      }),
-    ]).start();
-  };
-
-  const backgroundInterpolation = (tab: Tab) =>
-    hoverBackgrounds[tab].interpolate({
-      inputRange: [0, 1],
-      outputRange: ["#0f0f0f", "#1f1f1f"], // subtle light on hover
-    });
+  if (error)
+    return (
+      <View style={styles.loaderContainer}>
+        <Text style={[styles.loaderText, { color: "#EF4444" }]}>
+          Error: {error}
+        </Text>
+      </View>
+    );
 
   return (
-    <>
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <AdminHeader styles={styles} />
+    <View style={styles.container}>
+      <AdminHeader styles={Adminstyles} />
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.title}>All Products</Text>
+        <TouchableOpacity
+          style={styles.manageBtn}
+          onPress={() => navigation.navigate("manage" as never)}
+        >
+          <Text style={styles.manageBtnText}>Manage Products</Text>
+        </TouchableOpacity>
+      </View>
 
-      <Text style={styles.welcomeTitle}>Welcome Back, Admin</Text>
-
-      {/* Tabs Section */}
-      <View style={styles.tabsContainer}>
-        {(["create", "products", "orders", "reviews"] as Tab[]).map((tab) => {
-          const isActive = activeTab === tab;
-
-          return (
-            <TouchableOpacity
-              key={tab}
-              onPress={() => setActiveTab(tab)}
-              onMouseEnter={() => handleHoverIn(tab)}
-              onMouseLeave={() => handleHoverOut(tab)}
-              activeOpacity={0.8}
-            >
+      {/* Product List */}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={true}
+      >
+        {products.length === 0 ? (
+          <Text style={styles.noProducts}>No products available.</Text>
+        ) : (
+          <View style={styles.productGrid}>
+            {products.map((product, index) => (
               <Animated.View
+                key={product._id}
                 style={[
-                  styles.tabButton,
+                  styles.productCard,
                   {
-                    transform: [{ scale: hoverScales[tab] }],
-                    backgroundColor: backgroundInterpolation(tab),
+                    opacity: fadeAnim.current[index],
+                    transform: [{ translateY: slideAnim.current[index] }],
                   },
-                  isActive && styles.tabButtonActive,
                 ]}
               >
-                <View style={styles.tabContent}>
-                  {tab === "create" && (
-                    <Feather name="plus-circle" size={20} color="#fff" />
-                  )}
-                  {tab === "products" && (
-                    <MaterialCommunityIcons
-                      name="basket"
-                      size={20}
-                      color="#fff"
-                    />
-                  )}
-                  {tab === "orders" && (
-                    <MaterialCommunityIcons
-                      name="cart"
-                      size={20}
-                      color="#fff"
-                    />
-                  )}
-                  {tab === "reviews" && (
-                    <MaterialCommunityIcons
-                      name="star"
-                      size={20}
-                      color="#fff"
-                    />
-                  )}
-                  <Text style={styles.tabText}>
-                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                {console.log(product.imageUrls)}
+                <Image
+                  source={{ uri: `${BASE_URL}${product.imageUrls[0]}` }}
+                  style={styles.productImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.cardContent}>
+                  <Text style={styles.productName}>{product.name}</Text>
+                  <Text style={styles.productBrand}>{product.brand}</Text>
+                  <Text style={styles.productDesc} numberOfLines={2}>
+                    {product.description}
+                  </Text>
+
+                  <View style={styles.productInfo}>
+                    <Text style={styles.productPrice}>PKR{product.price}</Text>
+                    <Text style={styles.productQty}>
+                      {product.quantity} in stock
+                    </Text>
+                  </View>
+
+                  <Text style={styles.productCategory}>
+                    Category: {product.category}
                   </Text>
                 </View>
               </Animated.View>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {/* Fade In Section on Tab Change */}
-      <Animated.View style={{ opacity: fadeAnim }}>
-        {activeTab === "create" && (
-          <ProductForm
-            isEditing={isEditing}
-            editProductData={editProductData}
-            cancelEdit={cancelEdit}
-            onSuccess={() => {
-              cancelEdit();
-              setRefreshProducts(!refreshProducts);
-            }}
-          />
+            ))}
+          </View>
         )}
-
-        {activeTab === "products" && (
-          <ProductsList refresh={refreshProducts} onEdit={startEdit} />
-        )}
-
-        {activeTab === "orders" && <OrdersScreen />}
-
-        {activeTab === "reviews" && <ReviewsList />}
-      </Animated.View>
-    </ScrollView>
-    <Toast config={toastConfig}/>
-    </>
+      </ScrollView>
+    </View>
   );
-}
+};
+
+export default ProductsPageWeb;

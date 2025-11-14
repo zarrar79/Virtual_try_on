@@ -16,7 +16,9 @@ const styles = StyleSheet.create({
 
   // ✅ Checkout Button in Header
   checkoutBtn: {
-    backgroundColor: "#db3022",
+    // backgroundColor: "#db3022",
+    // backgroundColor: "#808000",
+    backgroundColor: "#411900",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
@@ -49,8 +51,8 @@ const styles = StyleSheet.create({
     minWidth: 120,
   },
   optionActive: {
-    backgroundColor: "#db3022",
-    borderColor: "#db3022",
+    backgroundColor: "#411900",
+    // borderColor: "#db3022",
   },
   optionText: {
     fontSize: 14,

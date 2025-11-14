@@ -24,7 +24,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
   onSuccess,
   cancelEdit,
 }) => {
-  const { product, image, handleChange, pickImage, handleSubmit } =
+  const { product, images, handleChange, pickImages, handleSubmit } =
     useProductForm({ isEditing, editProductData, onSuccess });
 
   const [loading, setLoading] = useState(false);
@@ -40,7 +40,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
   };
 
   const handleSubmitButton = async () => {
-    // Basic validation
     if (
       !product.name ||
       !product.brand ||
@@ -53,8 +52,9 @@ const ProductForm: React.FC<ProductFormProps> = ({
       return;
     }
 
-    if (!image) {
-      showToast("error", "Please select an image.");
+    // 🚨 Updated validation for multiple images
+    if (!images || images.length === 0) {
+      showToast("error", "Please select at least 1 image.");
       return;
     }
 
@@ -69,15 +69,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
     try {
       setLoading(true);
-      console.log("Submitting product...");
       await handleSubmit();
-
-      showToast(
-        "success",
-        isEditing
-          ? "Product updated successfully!"
-          : "Product added successfully!"
-      );
     } catch (error) {
       console.error("Error submitting product:", error);
       showToast("error", "Something went wrong while saving the product.");
@@ -124,7 +116,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
         />
       </View>
 
-      <ImagePickerField image={image} onPick={pickImage} />
+      {/* 🔥 Updated to support multiple images */}
+      <ImagePickerField images={images} onPick={pickImages} />
 
       <TouchableOpacity
         style={[styles.submitButton, loading && { opacity: 0.6 }]}

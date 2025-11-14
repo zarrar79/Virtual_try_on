@@ -25,13 +25,6 @@ export default function RootLayout() {
           name="drawer"
           options={{ headerShown: false }}
         /> */}
-          <Stack.Screen
-            name="ProductCustomization"
-            options={{
-              headerShown: false,
-              title: 'Product Customization',
-            }}
-          />
         </Stack>
       </CartProvider>
     </ApiProvider>

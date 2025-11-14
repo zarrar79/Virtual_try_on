@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
     },
     removeBtn: {
-        backgroundColor: "#ff4d4d",
+        backgroundColor: "#411900",
         paddingVertical: 10,
         borderRadius: 8,
         marginTop: 8,

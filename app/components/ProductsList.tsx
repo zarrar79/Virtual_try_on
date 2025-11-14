@@ -24,7 +24,7 @@ interface Product {
   price: number;
   quantity: number;
   description: string;
-  imageUrl?: string;
+  imageUrls?: string[];
 }
 
 interface ProductsListProps {
@@ -145,9 +145,9 @@ const ProductsList: React.FC<ProductsListProps> = ({ refresh, onEdit }) => {
         ]}
       >
         <Pressable onPressIn={onPressIn} onPressOut={onPressOut}>
-          {item.imageUrl && (
+          {item.imageUrls && (
             <Image
-              source={{ uri: `${API_BASE}${item.imageUrl}` }}
+              source={{ uri: `${API_BASE}${item.imageUrls[0]}` }}
               style={styles.productImage}
               resizeMode="cover"
             />

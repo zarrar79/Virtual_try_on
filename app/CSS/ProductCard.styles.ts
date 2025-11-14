@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   addToWishlistBtn: {
-    backgroundColor: "#db3022",
+    backgroundColor: "#808000",
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,

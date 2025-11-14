@@ -90,8 +90,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use("/backend/uploads", express.static(path.join(__dirname, "/uploads")));
 app.use(express.urlencoded({ extended: true }));
 
-const BASE_IP_ADD = "192.168.71.48";
-
+const BASE_IP_ADD = "192.168.1.13";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // MongoDB connection
@@ -299,32 +298,38 @@ app.get("/review/check/:orderId/:productId/:userId", async (req, res) => {
 // CREATE product with image
 app.post("/products", authMiddleware, async (req, res) => {
   try {
-    const { image, name, brand, category, price, quantity, description } =
+    const { images, name, brand, category, price, quantity, description } =
       req.body;
+
     console.log(req.body);
 
-    // Check for required fields
-    if (!image || !name || !category || !quantity) {
+    // Validate
+    if (!images || !Array.isArray(images) || images.length === 0) {
+      return res.status(400).json({ error: "At least one image is required." });
+    }
+    if (!name || !category || !quantity) {
       return res.status(400).json({
-        error: "Missing required fields: name, category, quantity, image",
+        error: "Missing required fields: name, category, quantity",
       });
     }
 
-    // Extract base64 data from data URI
-    const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
-    const buffer = Buffer.from(base64Data, "base64");
+    const savedImageUrls = [];
 
-    // Define filename and path
-    const filename = `${Date.now()}.png`; // or jpg
-    const uploadPath = path.join(__dirname, "uploads", filename);
+    // Process each image
+    for (let img of images) {
+      const base64Data = img.replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Buffer.from(base64Data, "base64");
 
-    // Save file to disk
-    fs.writeFileSync(uploadPath, buffer);
+      const filename = `${Date.now()}-${Math.random()}.png`;
+      const uploadPath = path.join(__dirname, "uploads", filename);
 
-    // Create image URL path
-    const imageUrl = `/backend/uploads/${filename}`; // this path should match how your frontend accesses the file
+      fs.writeFileSync(uploadPath, buffer);
 
-    // Save product to DB
+      const url = `/backend/uploads/${filename}`;
+      savedImageUrls.push(url);
+    }
+
+    // Save product in database
     const product = new Product({
       name,
       brand,
@@ -332,16 +337,18 @@ app.post("/products", authMiddleware, async (req, res) => {
       price: Number(price),
       quantity: Number(quantity),
       description,
-      imageUrl,
+      imageUrls: savedImageUrls,
     });
 
     const saved = await product.save();
     res.status(201).json(saved);
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Something went wrong: " + err.message });
   }
 });
+
 
 // READ all products
 app.get("/products", async (req, res) => {
@@ -365,19 +372,40 @@ app.get("/products/:id", authMiddleware, async (req, res) => {
 });
 
 // UPDATE product
-app.put("/products/:id", authMiddleware, async (req, res) => {
+app.put("/products/:id", authMiddleware, upload.array("images", 10), async (req, res) => {
   try {
-    const { name, description, price, brand } = req.body;
-    const updateData = { name, description, price, brand };
+    const { name, description, price, brand, category, quantity, existingImages } = req.body;
 
-    if (req.file) {
-      updateData.image = `/uploads/${req.file.filename}`;
+    const updateData = {
+      name,
+      description,
+      price,
+      brand,
+      category,
+      quantity,
+    };
+
+    let imagesFromClient = [];
+
+    if (existingImages) {
+      try {
+        imagesFromClient = JSON.parse(existingImages); // array of old images
+      } catch {}
     }
+
+    const newUploads = req.files
+      ? req.files.map((file) => `/uploads/${file.filename}`)
+      : [];
+
+    updateData.imageUrls = [...imagesFromClient, ...newUploads];
 
     const updated = await Product.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
     });
-    if (!updated) return res.status(404).json({ message: "Product not found" });
+
+    if (!updated)
+      return res.status(404).json({ message: "Product not found" });
+
     res.json(updated);
   } catch (err) {
     res.status(400).json({ error: err.message });
