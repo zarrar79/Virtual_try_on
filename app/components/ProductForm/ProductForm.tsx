@@ -24,9 +24,9 @@ const ProductForm: React.FC<ProductFormProps> = ({
   onSuccess,
   cancelEdit,
 }) => {
-  const { product, images, handleChange, pickImages, handleSubmit } =
+  const { product, images, handleChange, pickImages, handleSubmit, setImages } =
     useProductForm({ isEditing, editProductData, onSuccess });
-
+ 
   const [loading, setLoading] = useState(false);
   const MIN_AMOUNT_PKR = 5000;
 
@@ -37,6 +37,12 @@ const ProductForm: React.FC<ProductFormProps> = ({
       position: "top",
       visibilityTime: 2500,
     });
+  };
+
+  const removeImage = (index: number) => {
+    const updated = [...images];
+    updated.splice(index, 1);
+    setImages(updated);
   };
 
   const handleSubmitButton = async () => {
@@ -52,7 +58,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
       return;
     }
 
-    // 🚨 Updated validation for multiple images
     if (!images || images.length === 0) {
       showToast("error", "Please select at least 1 image.");
       return;
@@ -116,8 +121,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
         />
       </View>
 
-      {/* 🔥 Updated to support multiple images */}
-      <ImagePickerField images={images} onPick={pickImages} />
+      {/* MULTIPLE IMAGE SUPPORT */}
+      <ImagePickerField images={images} onPick={pickImages} onRemove={removeImage} />
 
       <TouchableOpacity
         style={[styles.submitButton, loading && { opacity: 0.6 }]}

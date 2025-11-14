@@ -372,9 +372,32 @@ app.get("/products/:id", authMiddleware, async (req, res) => {
 });
 
 // UPDATE product
-app.put("/products/:id", authMiddleware, upload.array("images", 10), async (req, res) => {
+
+app.put("/products/:id", authMiddleware, async (req, res) => {
   try {
-    const { name, description, price, brand, category, quantity, existingImages } = req.body;
+    const { name, description, price, brand, category, quantity, imageUrls, images } = req.body;
+
+    let finalImageUrls = [];
+
+    // Keep old images
+    if (imageUrls && Array.isArray(imageUrls)) {
+      finalImageUrls = [...imageUrls];
+    }
+
+    // Save new base64 images
+    if (images && Array.isArray(images)) {
+      for (let img of images) {
+        const base64Data = img.replace(/^data:image\/\w+;base64,/, "");
+        const buffer = Buffer.from(base64Data, "base64");
+
+        const filename = `${Date.now()}-${Math.random()}.png`;
+        const uploadPath = path.join(__dirname, "uploads", filename);
+
+        fs.writeFileSync(uploadPath, buffer);
+
+        finalImageUrls.push(`/backend/uploads/${filename}`);
+      }
+    }
 
     const updateData = {
       name,
@@ -383,34 +406,21 @@ app.put("/products/:id", authMiddleware, upload.array("images", 10), async (req,
       brand,
       category,
       quantity,
+      imageUrls: finalImageUrls,
     };
-
-    let imagesFromClient = [];
-
-    if (existingImages) {
-      try {
-        imagesFromClient = JSON.parse(existingImages); // array of old images
-      } catch {}
-    }
-
-    const newUploads = req.files
-      ? req.files.map((file) => `/uploads/${file.filename}`)
-      : [];
-
-    updateData.imageUrls = [...imagesFromClient, ...newUploads];
 
     const updated = await Product.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
     });
 
-    if (!updated)
-      return res.status(404).json({ message: "Product not found" });
+    if (!updated) return res.status(404).json({ message: "Product not found" });
 
     res.json(updated);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
+
 
 // DELETE product
 app.delete("/products/:id", authMiddleware, async (req, res) => {

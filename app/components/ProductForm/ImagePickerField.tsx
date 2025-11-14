@@ -1,30 +1,22 @@
-import { View, Text, TouchableOpacity, Image, ScrollView, Alert } from "react-native";
+// components/ProductForm/ImagePickerField.tsx
+import React from "react";
+import { View, Text, TouchableOpacity, Image } from "react-native";
 import styles from "../../CSS/ImagePickerField.styles";
 
 interface ImagePickerFieldProps {
-  images: { uri: string }[];   // <-- changed from single image to array
+  images: { uri: string }[];
   onPick: () => void;
+  onRemove: (index: number) => void;
 }
 
-const ImagePickerField: React.FC<ImagePickerFieldProps> = ({ images, onPick }) => {
-
-  const displayUris =
-    images?.map((img) =>
-      img.uri ? img.uri.replace(/^https?:\/\/[^/]+(:\d+)?/, "") : null
-    ) || [];
-
-  const handlePick = () => {
-    try {
-      onPick();
-    } catch (err) {
-      console.error("Image pick failed:", err);
-      Alert.alert("Error", "Failed to select an image. Please try again.");
-    }
-  };
-
+const ImagePickerField: React.FC<ImagePickerFieldProps> = ({
+  images,
+  onPick,
+  onRemove,
+}) => {
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.button} onPress={handlePick}>
+      <TouchableOpacity style={styles.button} onPress={onPick}>
         <Text style={styles.buttonText}>
           {images.length > 0 ? "Add More Images" : "Select Images"}
         </Text>
@@ -33,13 +25,19 @@ const ImagePickerField: React.FC<ImagePickerFieldProps> = ({ images, onPick }) =
       {images.length === 0 ? (
         <Text style={styles.placeholderText}>No images selected</Text>
       ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
-          {displayUris.map((uri, index) =>
-            uri ? (
-              <Image key={index} source={{ uri }} style={[styles.image, { marginRight: 10 }]} />
-            ) : null
-          )}
-        </ScrollView>
+        <View style={styles.imageContainer}>
+          {images.map((img, index) => (
+            <View key={index} style={styles.imageWrapper}>
+              <Image source={{ uri: img.uri }} style={styles.image} />
+              <TouchableOpacity
+                style={styles.removeButton}
+                onPress={() => onRemove(index)}
+              >
+                <Text style={styles.removeText}>X</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
       )}
     </View>
   );

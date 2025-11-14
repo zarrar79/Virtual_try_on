@@ -1,6 +1,6 @@
 // components/ProductForm/useProductForm.ts
 import { useEffect, useState } from "react";
-import { Alert } from "react-native";
+import { Alert, Platform } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -21,20 +21,23 @@ type Product = {
 
 type ImageData = {
   uri: string;
-  base64?: string;
   type?: string;
   name?: string;
+  isOld?: boolean; // ⭐ distinguish existing images
 };
 
-type UseProductFormProps = {
+export const useProductForm = ({
+  isEditing,
+  editProductData,
+  onSuccess,
+}: {
   isEditing: boolean;
   editProductData?: Product;
   onSuccess: () => void;
-};
-
-export const useProductForm = ({ isEditing, editProductData, onSuccess }: UseProductFormProps) => {
+}) => {
   const BASE_URL = useApi();
 
+  // PRODUCT STATE
   const [product, setProduct] = useState<Product>({
     name: "",
     brand: "",
@@ -43,20 +46,26 @@ export const useProductForm = ({ isEditing, editProductData, onSuccess }: UsePro
     quantity: 0,
     sku: "",
     description: "",
+    imageUrls: [],
   });
 
-  // MULTIPLE IMAGES
+  // IMAGES = old URLs + new selected images
   const [images, setImages] = useState<ImageData[]>([]);
 
-  // Load existing data when editing
+  // LOAD INITIAL VALUES FOR EDIT
   useEffect(() => {
     if (isEditing && editProductData) {
-      setProduct(editProductData);
+      setProduct({
+        ...editProductData,
+        imageUrls: editProductData.imageUrls ?? [],
+      });
 
+      // Merge image URLs (old) into image list
       if (editProductData.imageUrls?.length) {
         setImages(
           editProductData.imageUrls.map((url) => ({
             uri: `${BASE_URL}${url}`,
+            isOld: true,
           }))
         );
       }
@@ -74,6 +83,7 @@ export const useProductForm = ({ isEditing, editProductData, onSuccess }: UsePro
       quantity: 0,
       sku: "",
       description: "",
+      imageUrls: [],
     });
     setImages([]);
   };
@@ -82,7 +92,7 @@ export const useProductForm = ({ isEditing, editProductData, onSuccess }: UsePro
     setProduct((prev) => ({ ...prev, [key]: value }));
   };
 
-  // 📌 Pick Multiple Images
+  // PICK IMAGES (WEB + MOBILE)
   const pickImages = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
@@ -90,107 +100,116 @@ export const useProductForm = ({ isEditing, editProductData, onSuccess }: UsePro
       return;
     }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
-      base64: false, // IMPORTANT – do NOT fetch base64 here
-      quality: 1,
-    });
+    let result;
 
-    if (!result.canceled && result.assets?.length) {
-      const selectedImages = result.assets.map((asset) => ({
+    if (Platform.OS === "web") {
+      // ⭐ WEB supports multiple images perfectly
+      result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        quality: 1,
+      });
+    } else {
+      // ⭐ MOBILE fallback (select 1 by 1)
+      result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 1,
+      });
+    }
+
+    if (!result.canceled) {
+      const selected = result.assets.map((asset) => ({
         uri: asset.uri,
         type: asset.type || "image/jpeg",
-        name: asset.fileName || "image.jpg",
+        name: asset.fileName || `image-${Date.now()}.jpg`,
+        isOld: false,
       }));
 
-      setImages((prev) => [...prev, ...selectedImages]);
+      setImages((prev) => [...prev, ...selected]);
     }
   };
 
-  // 📌 Compress Image (small but high-quality)
+  // COMPRESS IMAGE
   const compressImage = async (uri: string) => {
     const result = await ImageManipulator.manipulateAsync(
       uri,
-      [{ resize: { width: 600 } }], // reduce width for massive size drop
+      [{ resize: { width: 600 } }],
       {
-        compress: 0.4, // clear & small
+        compress: 0.5,
         format: ImageManipulator.SaveFormat.JPEG,
         base64: true,
       }
     );
-
     return `data:image/jpeg;base64,${result.base64}`;
   };
 
-  // 📌 Submit
+  // SUBMIT PRODUCT
   const handleSubmit = async () => {
-    if (!product.name.trim()) {
-      Alert.alert("Validation", "Please enter product name.");
-      return;
-    }
+  if (!product.name.trim()) {
+    Alert.alert("Validation", "Please enter product name.");
+    return;
+  }
 
-    let payload: any = { ...product };
+  const token = await AsyncStorage.getItem("token");
+  if (!token) {
+    Alert.alert("Error", "Not authenticated.");
+    return;
+  }
 
-    // Compress and attach multiple images
-    if (images.length > 0) {
-      const base64Images: string[] = [];
+  // 1️⃣ Extract old image URLs (those coming from DB)
+  const oldUrls = images
+    .filter((img) => img.isOld)  
+    .map((img) => img.uri.replace(BASE_URL, "")); // remove BASE_URL
 
-      for (const img of images) {
-        const compressed = await compressImage(img.uri);
-        base64Images.push(compressed);
-      }
+  // 2️⃣ Extract NEW images (local uri)
+  const newImages = images.filter((img) => !img.isOld);
 
-      payload.images = base64Images;
-    }
+  // 3️⃣ Convert only NEW IMAGES to base64
+  const base64Uploads: string[] = [];
+  for (let img of newImages) {
+    const compressed = await compressImage(img.uri);
+    base64Uploads.push(compressed);
+  }
 
-    const token = await AsyncStorage.getItem("token");
-
-    if (!token) {
-      Alert.alert("Error", "Not authenticated.");
-      return;
-    }
-
-    try {
-      const res = await fetch(
-        isEditing ? `${BASE_URL}/products/${product._id}` : `${BASE_URL}/products`,
-        {
-          method: isEditing ? "PUT" : "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      const data = await res.json();
-
-      if (res.ok) {
-        Toast.show({
-          type: "success",
-          text1: isEditing ? "Product updated!" : "Product added!",
-          position: "top",
-        });
-
-        resetForm();
-        onSuccess();
-      } else {
-        Toast.show({
-          type: "error",
-          text1: data.error || "Failed to save product",
-          position: "top",
-        });
-      }
-    } catch (err) {
-      console.error(err);
-      Toast.show({
-        type: "error",
-        text1: "Something went wrong",
-        position: "top",
-      });
-    }
+  // 4️⃣ FINAL PAYLOAD (correct structure)
+  const payload = {
+    ...product,
+    imageUrls: oldUrls,  // keep old images
+    images: base64Uploads, // upload only new ones
   };
+
+  // 5️⃣ Send request
+  const res = await fetch(
+    isEditing ? `${BASE_URL}/products/${product._id}` : `${BASE_URL}/products`,
+    {
+      method: isEditing ? "PUT" : "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  const data = await res.json();
+
+  if (res.ok) {
+    Toast.show({
+      type: "success",
+      text1: isEditing ? "Product updated!" : "Product added!",
+      position: "top",
+    });
+
+    resetForm();
+    onSuccess();
+  } else {
+    Toast.show({
+      type: "error",
+      text1: data.error || "Failed to save product",
+      position: "top",
+    });
+  }
+};
 
   return {
     product,
