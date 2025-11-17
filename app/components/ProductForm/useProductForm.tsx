@@ -23,7 +23,7 @@ type ImageData = {
   uri: string;
   type?: string;
   name?: string;
-  isOld?: boolean; // ⭐ distinguish existing images
+  isOld?: boolean;  // ⭐ distinguish existing images
 };
 
 export const useProductForm = ({
@@ -169,7 +169,7 @@ export const useProductForm = ({
   for (let img of newImages) {
     const compressed = await compressImage(img.uri);
     base64Uploads.push(compressed);
-  }
+}
 
   // 4️⃣ FINAL PAYLOAD (correct structure)
   const payload = {

@@ -19,5 +19,7 @@ const styles = StyleSheet.create({
   itemRow: { marginTop: 5 },
   itemName: { fontSize: 15 },
   itemPrice: { fontSize: 14, color: "#555" },
+  imageScroll: { marginTop: 8 },
+  productImage: { width: 80, height: 80, marginRight: 8, borderRadius: 8 },
 });
 export default styles;

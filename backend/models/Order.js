@@ -10,9 +10,8 @@ const orderSchema = new mongoose.Schema(
         name: String,
         price: Number,
         quantity: Number,
-        imageUrl: String,
+        imageUrls: [{ type: String }], // ✅ store multiple images here
         size: { type: String, default: null },   // optional
-        color: { type: String, default: null },  // optional
       },
     ],
     totalAmount: Number,

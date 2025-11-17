@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigation } from "@react-navigation/native";
-import { View, SafeAreaView, FlatList, Alert, BackHandler,TouchableOpacity } from 'react-native';
+import { View, SafeAreaView, FlatList, Alert, BackHandler, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ProductCard from '../components/ProductCard';
@@ -9,11 +9,6 @@ import ReviewPopup from '@/components/ReviewPopup';
 import styles from '../CSS/Home.styles';
 
 export default function Home() {
-  // If using TypeScript, define the navigation type for your stack
-  // Replace 'RootStackParamList' with your actual stack param list type
-  // import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-  // type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
-  // const navigation = useNavigation<HomeScreenNavigationProp>();
   const navigation = useNavigation<any>();
   const BASE_URL = useApi();
   const [products, setProducts] = useState([]);
@@ -21,14 +16,12 @@ export default function Home() {
   const [reviewProduct, setReviewProduct] = useState(null);
   const [dismissedReviews, setDismissedReviews] = useState<string[]>([]);
 
-  // Load dismissed reviews from AsyncStorage
   const loadDismissedReviews = useCallback(async () => {
     const dismissedRaw = await AsyncStorage.getItem('dismissedReviews');
     const dismissed: string[] = dismissedRaw ? JSON.parse(dismissedRaw) : [];
     setDismissedReviews(dismissed);
   }, []);
 
-  // Check for unreviewed delivered products
   const checkForReviews = useCallback(async () => {
     if (!userId) return;
 
@@ -41,12 +34,14 @@ export default function Home() {
           for (const item of order.items) {
             if (dismissedReviews.includes(item.productId)) continue;
 
-            const checkRes = await fetch(`${BASE_URL}/review/check/${order._id}/${item.productId}/${userId}`);
+            const checkRes = await fetch(
+              `${BASE_URL}/review/check/${order._id}/${item.productId}/${userId}`
+            );
             const checkData = await checkRes.json();
 
             if (!checkData.reviewed) {
               setReviewProduct({ productId: item.productId, orderId: order._id });
-              return; // show only one popup at a time
+              return;
             }
           }
         }
@@ -58,7 +53,6 @@ export default function Home() {
     }
   }, [userId, dismissedReviews, BASE_URL]);
 
-  // Load user ID and dismissed reviews when screen focuses
   useFocusEffect(
     useCallback(() => {
       const loadUserIdAndReviews = async () => {
@@ -76,52 +70,48 @@ export default function Home() {
     }, [loadDismissedReviews])
   );
 
-  // Trigger review check whenever userId or dismissedReviews changes
   useEffect(() => {
     checkForReviews();
   }, [userId, dismissedReviews]);
 
-  // Fetch products when screen focuses
   useFocusEffect(
-  useCallback(() => {
-    const fetchProductsWithRatings = async () => {
-      try {
-        const res = await fetch(`${BASE_URL}/products`);
-        const data = await res.json();
+    useCallback(() => {
+      const fetchProductsWithRatings = async () => {
+        try {
+          const res = await fetch(`${BASE_URL}/products`);
+          const data = await res.json();
 
-        // Fetch reviews and calculate avg rating for each product
-        const productsWithRatings = await Promise.all(
-          data.map(async (product: any) => {
-            try {
-              const reviewRes = await fetch(`${BASE_URL}/review/product/${product._id}`);
-              const reviews = await reviewRes.json();
+          const productsWithRatings = await Promise.all(
+            data.map(async (product: any) => {
+              try {
+                const reviewRes = await fetch(`${BASE_URL}/review/product/${product._id}`);
+                const reviews = await reviewRes.json();
 
-              if (reviews.length > 0) {
-                const avg =
-                  reviews.reduce((acc: number, r: any) => acc + (r.rating || 0), 0) / reviews.length;
-                product.avgRating = parseFloat(avg.toFixed(1)); // e.g. 4.3
-              } else {
+                if (reviews.length > 0) {
+                  const avg =
+                    reviews.reduce((acc: number, r: any) => acc + (r.rating || 0), 0) /
+                    reviews.length;
+                  product.avgRating = parseFloat(avg.toFixed(1));
+                } else {
+                  product.avgRating = 0;
+                }
+              } catch {
                 product.avgRating = 0;
               }
-            } catch (err) {
-              console.error(`Error fetching reviews for product ${product._id}:`, err);
-              product.avgRating = 0;
-            }
-            return product;
-          })
-        );
+              return product;
+            })
+          );
 
-        setProducts(productsWithRatings);
-      } catch (err) {
-        console.error("Error fetching products:", err);
-      }
-    };
+          setProducts(productsWithRatings);
+        } catch (err) {
+          console.error("Error fetching products:", err);
+        }
+      };
 
-    fetchProductsWithRatings();
-  }, [BASE_URL])
-);
+      fetchProductsWithRatings();
+    }, [BASE_URL])
+  );
 
-  // Handle back button
   useEffect(() => {
     const handleBackPress = () => {
       Alert.alert('Exit App', 'Do you want to exit the app?', [
@@ -141,7 +131,7 @@ export default function Home() {
         keyExtractor={(item) => item._id}
         renderItem={({ item }) => (
           <TouchableOpacity
-            onPress={() => navigation.navigate("ProductCustomization",{ product: item })}
+            onPress={() => navigation.navigate("ProductCustomization", { product: item })}
             activeOpacity={0.8}
           >
             <ProductCard product={item} avgRating={item.avgRating} />
@@ -150,14 +140,13 @@ export default function Home() {
         contentContainerStyle={styles.productList}
       />
 
-
       {reviewProduct && (
         <ReviewPopup
           visible={!!reviewProduct}
           productId={reviewProduct.productId}
           orderId={reviewProduct.orderId}
           userId={userId}
-          productName={products.find(p => p._id === reviewProduct.productId)?.name || 'Product'} // 👈 pass name
+          productName={products.find(p => p._id === reviewProduct.productId)?.name || 'Product'}
           onClose={async () => {
             if (reviewProduct) {
               const updatedDismissed = [...dismissedReviews, reviewProduct.productId];
@@ -169,7 +158,6 @@ export default function Home() {
           }}
         />
       )}
-
     </SafeAreaView>
   );
 }

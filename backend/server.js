@@ -625,7 +625,7 @@ app.post("/order/cod", async (req, res) => {
         name: item.name,
         price: item.price,
         quantity: item.quantity,
-        imageUrl: item.imageUrl,
+        imageUrls: item.imageUrls,
         size: item.selectedSize || null,
         color: item.selectedColor || null,
       })),

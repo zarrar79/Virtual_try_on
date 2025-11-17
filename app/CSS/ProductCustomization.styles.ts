@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 8,
-    color: "#222",
+    color: "#fff",
   },
   reviewCard: {
     backgroundColor: "#f8f8f8",
@@ -120,6 +120,31 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 18,
   },
+  thumbnailRow: {
+  flexDirection: "row",
+  flexWrap: "wrap",
+  marginTop: 10,
+  justifyContent: "center",
+  gap: 10,
+},
+
+thumbnailContainer: {
+  padding: 4,
+  borderWidth: 1,
+  borderColor: "#ccc",
+  borderRadius: 8,
+},
+
+selectedThumbnail: {
+  borderColor: "blue",
+  borderWidth: 2,
+},
+
+thumbnail: {
+  width: 60,
+  height: 60,
+  borderRadius: 6,
+},
 });
 
 export default styles;
