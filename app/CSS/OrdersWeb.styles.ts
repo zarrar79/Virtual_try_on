@@ -115,6 +115,37 @@ const styles = StyleSheet.create({
     fontSize: 16,
     width: 12,
   },
+  itemName: {
+  color: "#fff",
+  fontSize: 18,
+  marginBottom: 4,
+},
+modalBackground: {
+    width: "100%",
+    marginLeft: "auto",
+    marginRight: "auto",
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "center",
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: "#111",
+    borderRadius: 10,
+    padding: 20,
+    marginLeft: "auto",
+    marginRight: "auto",
+    width: "50%",
+    maxHeight: "80%",
+    display: "flex",
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#fff",
+    marginBottom: 15,
+  },
 
   activeFilterButton: {
     backgroundColor: "#0db760",
