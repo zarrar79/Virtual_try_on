@@ -29,6 +29,8 @@ interface Order {
     size?: string;
     color?: string;
     price: number;
+    designIndex: number;
+    itemTotal?: number;
     imageUrls: string[]; // multiple selected images
   }[];
 }
@@ -240,7 +242,7 @@ export default function OrdersScreen() {
       {/* Order Summary */}
       <View style={styles.orderSummary}>
         <Text style={styles.summaryText}>
-          Total Items: {selectedOrder?.totalQuantity || selectedOrder?.items?.reduce((sum, item) => sum + item.quantity, 0)}
+          Total Items: {selectedOrder ? (selectedOrder.items?.reduce((sum, item) => sum + item.quantity, 0) ?? 0) : 0}
         </Text>
         <Text style={styles.summaryText}>
           Total Amount: Rs. {selectedOrder?.totalAmount?.toLocaleString()}

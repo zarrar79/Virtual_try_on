@@ -17,6 +17,13 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
   },
+  // Add to your ProductCard.styles
+productRating: {
+  fontSize: 14,
+  color: '#666',
+  marginTop: 4,
+  marginBottom: 8,
+},
   productInfo: {
     flex: 1,
     padding: 12,

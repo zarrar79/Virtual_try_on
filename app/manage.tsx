@@ -4,7 +4,7 @@ import {
   Alert,
   ScrollView,
   Text,
-  TouchableOpacity,
+  Pressable,
   View,
 } from "react-native";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -181,12 +181,11 @@ export default function AdminScreen() {
           const isActive = activeTab === tab;
 
           return (
-            <TouchableOpacity
+            <Pressable
               key={tab}
               onPress={() => setActiveTab(tab)}
-              onMouseEnter={() => handleHoverIn(tab)}
-              onMouseLeave={() => handleHoverOut(tab)}
-              activeOpacity={0.8}
+              onHoverIn={() => handleHoverIn(tab)}
+              onHoverOut={() => handleHoverOut(tab)}
             >
               <Animated.View
                 style={[
@@ -228,7 +227,7 @@ export default function AdminScreen() {
                   </Text>
                 </View>
               </Animated.View>
-            </TouchableOpacity>
+            </Pressable>
           );
         })}
       </View>

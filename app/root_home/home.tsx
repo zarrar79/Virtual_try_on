@@ -1,6 +1,15 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigation } from "@react-navigation/native";
-import { View, SafeAreaView, FlatList, Alert, BackHandler, TouchableOpacity } from 'react-native';
+import { 
+  View, 
+  SafeAreaView, 
+  FlatList, 
+  Alert, 
+  BackHandler, 
+  TouchableOpacity, 
+  Text,
+  ScrollView 
+} from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ProductCard from '../components/ProductCard';
@@ -8,18 +17,60 @@ import { useApi } from '../context/ApiContext';
 import ReviewPopup from '@/components/ReviewPopup';
 import styles from '../CSS/Home.styles';
 
-export default function Home() {
-  const navigation = useNavigation<any>();
-  const BASE_URL = useApi();
-  const [products, setProducts] = useState([]);
-  const [userId, setUserId] = useState('');
-  const [reviewProduct, setReviewProduct] = useState(null);
+type GenderFilter = 'all' | 'male' | 'female';
+interface ReviewProduct {
+  productId: string;
+  orderId: string;
+}
+
+// Custom hook for gender filtering
+const useGenderFilter = (products: any[]) => {
+  const [selectedGender, setSelectedGender] = useState<GenderFilter>('all');
+
+  const filterProductsByGender = useCallback((productsList: any[], gender: GenderFilter) => {
+    if (gender === 'all') return productsList;
+    
+    const genderKeywords = {
+      male: ['male', 'men', 'man', 'boy'],
+      female: ['female', 'women', 'woman', 'girl']
+    };
+
+    return productsList.filter(product => {
+      const searchText = [
+        product.name?.toLowerCase(),
+        product.category?.toLowerCase(),
+        product.description?.toLowerCase()
+      ].join(' ');
+
+      return genderKeywords[gender].some(keyword => searchText.includes(keyword));
+    });
+  }, []);
+
+  const filteredProducts = useMemo(() => 
+    filterProductsByGender(products, selectedGender),
+    [products, selectedGender, filterProductsByGender]
+  );
+
+  return {
+    selectedGender,
+    setSelectedGender,
+    filteredProducts
+  };
+};
+
+// Custom hook for reviews management
+const useReviews = (userId: string, BASE_URL: string) => {
+  const [reviewProduct, setReviewProduct] = useState<ReviewProduct | null>(null);
   const [dismissedReviews, setDismissedReviews] = useState<string[]>([]);
 
   const loadDismissedReviews = useCallback(async () => {
-    const dismissedRaw = await AsyncStorage.getItem('dismissedReviews');
-    const dismissed: string[] = dismissedRaw ? JSON.parse(dismissedRaw) : [];
-    setDismissedReviews(dismissed);
+    try {
+      const dismissedRaw = await AsyncStorage.getItem('dismissedReviews');
+      const dismissed = dismissedRaw ? JSON.parse(dismissedRaw) : [];
+      setDismissedReviews(dismissed);
+    } catch (error) {
+      console.error('Error loading dismissed reviews:', error);
+    }
   }, []);
 
   const checkForReviews = useCallback(async () => {
@@ -46,74 +97,191 @@ export default function Home() {
           }
         }
       }
-
       setReviewProduct(null);
     } catch (err) {
       console.error('Error checking reviews:', err);
     }
   }, [userId, dismissedReviews, BASE_URL]);
 
+  const dismissReview = useCallback(async (productId: string) => {
+    const updatedDismissed = [...dismissedReviews, productId];
+    setDismissedReviews(updatedDismissed);
+    await AsyncStorage.setItem('dismissedReviews', JSON.stringify(updatedDismissed));
+    setReviewProduct(null);
+  }, [dismissedReviews]);
+
+  return {
+    reviewProduct,
+    dismissedReviews,
+    loadDismissedReviews,
+    checkForReviews,
+    dismissReview
+  };
+};
+
+// Custom hook for products data
+const useProducts = (BASE_URL: string) => {
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchProductsWithRatings = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${BASE_URL}/products`);
+      const data = await res.json();
+
+      const productsWithRatings = await Promise.all(
+        data.map(async (product: any) => {
+          try {
+            const reviewRes = await fetch(`${BASE_URL}/review/product/${product._id}`);
+            const reviews = await reviewRes.json();
+
+            const avgRating = reviews.length > 0 
+              ? parseFloat((reviews.reduce((acc: number, r: any) => acc + (r.rating || 0), 0) / reviews.length).toFixed(1))
+              : 0;
+
+            return { ...product, avgRating };
+          } catch {
+            return { ...product, avgRating: 0 };
+          }
+        })
+      );
+
+      setProducts(productsWithRatings);
+    } catch (err) {
+      console.error("Error fetching products:", err);
+      Alert.alert("Error", "Failed to load products");
+    } finally {
+      setLoading(false);
+    }
+  }, [BASE_URL]);
+
+  return {
+    products,
+    loading,
+    fetchProductsWithRatings
+  };
+};
+
+// Custom hook for user data
+const useUser = () => {
+  const [userId, setUserId] = useState('');
+
+  const loadUserId = useCallback(async () => {
+    try {
+      const id = await AsyncStorage.getItem('user');
+      if (id) setUserId(id);
+    } catch (err) {
+      console.error('Error loading user ID:', err);
+    }
+  }, []);
+
+  return {
+    userId,
+    loadUserId
+  };
+};
+
+// Gender Tabs Component
+const GenderTabs = React.memo(({ 
+  selectedGender, 
+  onGenderSelect 
+}: { 
+  selectedGender: GenderFilter;
+  onGenderSelect: (gender: GenderFilter) => void;
+}) => (
+  <ScrollView 
+    horizontal 
+    showsHorizontalScrollIndicator={false}
+    style={styles.tabsContainer}
+  >
+    {(['all', 'male', 'female'] as GenderFilter[]).map(gender => (
+      <TouchableOpacity
+        key={gender}
+        style={[
+          styles.tab,
+          selectedGender === gender && styles.tabActive
+        ]}
+        onPress={() => onGenderSelect(gender)}
+      >
+        <Text style={[
+          styles.tabText,
+          selectedGender === gender && styles.tabTextActive
+        ]}>
+          {gender === 'all' ? 'All Products' : gender.charAt(0).toUpperCase() + gender.slice(1)}
+        </Text>
+      </TouchableOpacity>
+    ))}
+  </ScrollView>
+));
+
+// Results Counter Component
+const ResultsCounter = React.memo(({ 
+  count, 
+  gender 
+}: { 
+  count: number; 
+  gender: GenderFilter;
+}) => (
+  <View style={styles.resultsContainer}>
+    <Text style={styles.resultsText}>
+      {count} product{count !== 1 ? 's' : ''} 
+      {gender !== 'all' && ` for ${gender}`}
+    </Text>
+  </View>
+));
+
+// Empty State Component
+const EmptyState = React.memo(({ gender }: { gender: GenderFilter }) => (
+  <View style={styles.emptyContainer}>
+    <Text style={styles.emptyText}>
+      {gender === 'all' 
+        ? 'No products available' 
+        : `No ${gender} products found`
+      }
+    </Text>
+  </View>
+));
+
+export default function Home() {
+  const navigation = useNavigation<any>();
+  const BASE_URL = useApi();
+
+  // Custom hooks
+  const { userId, loadUserId } = useUser();
+  const { products, fetchProductsWithRatings } = useProducts(BASE_URL);
+  const { selectedGender, setSelectedGender, filteredProducts } = useGenderFilter(products);
+  const { 
+    reviewProduct, 
+    loadDismissedReviews, 
+    checkForReviews, 
+    dismissReview 
+  } = useReviews(userId, BASE_URL);
+
+  // Load user data and reviews
   useFocusEffect(
     useCallback(() => {
-      const loadUserIdAndReviews = async () => {
-        try {
-          const id = await AsyncStorage.getItem('user');
-          console.log(id,'---->id');
-          
-          if (id) {
-            setUserId(id);
-            await loadDismissedReviews();
-          }
-        } catch (err) {
-          console.error('Error loading user ID:', err);
-        }
+      const initializeUserData = async () => {
+        await loadUserId();
+        await loadDismissedReviews();
       };
-      loadUserIdAndReviews();
-    }, [loadDismissedReviews])
+      initializeUserData();
+    }, [loadUserId, loadDismissedReviews])
   );
 
+  // Check for reviews when user or dismissed reviews change
   useEffect(() => {
     checkForReviews();
-  }, [userId, dismissedReviews]);
+  }, [userId, checkForReviews]);
 
+  // Fetch products on focus
   useFocusEffect(
     useCallback(() => {
-      const fetchProductsWithRatings = async () => {
-        try {
-          const res = await fetch(`${BASE_URL}/products`);
-          const data = await res.json();
-
-          const productsWithRatings = await Promise.all(
-            data.map(async (product: any) => {
-              try {
-                const reviewRes = await fetch(`${BASE_URL}/review/product/${product._id}`);
-                const reviews = await reviewRes.json();
-
-                if (reviews.length > 0) {
-                  const avg =
-                    reviews.reduce((acc: number, r: any) => acc + (r.rating || 0), 0) /
-                    reviews.length;
-                  product.avgRating = parseFloat(avg.toFixed(1));
-                } else {
-                  product.avgRating = 0;
-                }
-              } catch {
-                product.avgRating = 0;
-              }
-              return product;
-            })
-          );
-
-          setProducts(productsWithRatings);
-        } catch (err) {
-          console.error("Error fetching products:", err);
-        }
-      };
-
       fetchProductsWithRatings();
-    }, [BASE_URL])
+    }, [fetchProductsWithRatings])
   );
 
+  // Handle back button press
   useEffect(() => {
     const handleBackPress = () => {
       Alert.alert('Exit App', 'Do you want to exit the app?', [
@@ -122,42 +290,70 @@ export default function Home() {
       ]);
       return true;
     };
+
     const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
     return () => backHandler.remove();
   }, []);
 
+  // Handle review popup close
+  const handleReviewClose = useCallback(async () => {
+    if (reviewProduct) {
+      await dismissReview(reviewProduct.productId);
+      setTimeout(() => checkForReviews(), 500);
+    }
+  }, [reviewProduct, dismissReview, checkForReviews]);
+
+  // Get product name for review popup
+  const reviewProductName = useMemo(() => 
+    products.find(p => p._id === reviewProduct?.productId)?.name || 'Product',
+    [products, reviewProduct]
+  );
+
+  // Render product item
+  const renderProductItem = useCallback(({ item }: { item: any }) => (
+    <TouchableOpacity
+      onPress={() => navigation.navigate("ProductCustomization", { product: item })}
+      activeOpacity={0.8}
+    >
+      <ProductCard product={item} />
+    </TouchableOpacity>
+  ), [navigation]);
+
   return (
     <SafeAreaView style={styles.container}>
-      <FlatList
-        data={products}
-        keyExtractor={(item) => item._id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            onPress={() => navigation.navigate("ProductCustomization", { product: item })}
-            activeOpacity={0.8}
-          >
-            <ProductCard product={item} avgRating={item.avgRating} />
-          </TouchableOpacity>
-        )}
-        contentContainerStyle={styles.productList}
+      {/* Gender Filter Tabs */}
+      <GenderTabs 
+        selectedGender={selectedGender} 
+        onGenderSelect={setSelectedGender} 
       />
 
+      {/* Results Count */}
+      <ResultsCounter 
+        count={filteredProducts.length} 
+        gender={selectedGender} 
+      />
+
+      {/* Products List */}
+      <FlatList
+        data={filteredProducts}
+        keyExtractor={(item) => item._id}
+        renderItem={renderProductItem}
+        contentContainerStyle={styles.productList}
+        ListEmptyComponent={<EmptyState gender={selectedGender} />}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+      />
+
+      {/* Review Popup */}
       {reviewProduct && (
         <ReviewPopup
           visible={!!reviewProduct}
           productId={reviewProduct.productId}
           orderId={reviewProduct.orderId}
           userId={userId}
-          productName={products.find(p => p._id === reviewProduct.productId)?.name || 'Product'}
-          onClose={async () => {
-            if (reviewProduct) {
-              const updatedDismissed = [...dismissedReviews, reviewProduct.productId];
-              setDismissedReviews(updatedDismissed);
-              await AsyncStorage.setItem('dismissedReviews', JSON.stringify(updatedDismissed));
-            }
-            setReviewProduct(null);
-            setTimeout(() => checkForReviews(), 500);
-          }}
+          productName={reviewProductName}
+          onClose={handleReviewClose}
         />
       )}
     </SafeAreaView>

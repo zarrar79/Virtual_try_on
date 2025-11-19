@@ -273,11 +273,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 />
               </View>
             )}
-
-            {/* Separator line between designs */}
-            {designIndex < designs.length - 1 && (
-              <View style={styles.designSeparator} />
-            )}
           </View>
         ))}
       </View>
