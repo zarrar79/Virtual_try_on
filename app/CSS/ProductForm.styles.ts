@@ -69,7 +69,7 @@ sectionTitle: {
   fontSize: 18,
   fontWeight: 'bold',
   marginBottom: 15,
-  color: '#ffff',
+  color: "#D1D5DB",
 },
 designContainer: {
   backgroundColor: '#f9f9f9',
@@ -83,7 +83,7 @@ designTitle: {
   fontSize: 16,
   fontWeight: '600',
   marginBottom: 10,
-  color: '#333',
+  color: "#D1D5DB",
 },
 designImageSection: {
   marginBottom: 15,
@@ -92,7 +92,7 @@ designLabel: {
   fontSize: 14,
   fontWeight: '500',
   marginBottom: 8,
-  color: '#333',
+  color: "#D1D5DB",
 },
 mainImagesSection: {
   marginTop: 20,
@@ -105,12 +105,12 @@ hintText: {
   fontStyle: 'italic',
 },
   designCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#1f1f1f',
     padding: 15,
     borderRadius: 12,
     marginBottom: 15,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: "#10B981",
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -215,7 +215,7 @@ designTitleContainer: {
   flex: 1,
 },
 designActions: {
-  flexDirection: 'row',
+//   flexDirection: 'row',
   gap: 8,
 },
 
@@ -231,6 +231,109 @@ restoreDesignText: {
   fontSize: 12,
   fontWeight: '500',
 },
+designInputWrapper: {
+    marginBottom: 20,
+    backgroundColor: '#1f1f1f',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#10B981",
+  },
+  labelContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  stockIndicator: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: '#e3f2fd',
+  },
+  stockCount: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  inStock: {
+    color: '#2e7d32',
+  },
+  outOfStock: {
+    color: '#d32f2f',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    // backgroundColor: 'white',
+    height: 50,
+  },
+  inputInStock: {
+    borderColor: '#4CAF50',
+  },
+  inputOutOfStock: {
+    borderColor: '#ddd',
+  },
+  designInput: {
+    flex: 1,
+    fontSize: 14,
+    color: "#D1D5DB",
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderColor: "#10B981",
+    borderWidth: 0.5,
+    paddingHorizontal: 8,
+  },
+  inputIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  clearButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#e0e0e0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  clearIcon: {
+    fontSize: 16,
+    color: '#666',
+    fontWeight: 'bold',
+  },
+  stockIcon: {
+    padding: 4,
+  },
+  stockIconText: {
+    fontSize: 16,
+  },
+  stockLevelContainer: {
+    marginTop: 12,
+  },
+  stockLevelBar: {
+    height: 6,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  stockLevelFill: {
+    height: '100%',
+    borderRadius: 3,
+    transition: 'all 0.3s ease',
+  },
+  stockLevelText: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+  },
+  designHeader:{
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  }
 });
 
 export default styles;

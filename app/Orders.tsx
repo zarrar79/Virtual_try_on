@@ -228,53 +228,84 @@ export default function OrdersScreen() {
 
       {/* Modal for Ordered Images */}
       <Modal
-        visible={!!selectedOrder}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setSelectedOrder(null)}
+  visible={!!selectedOrder}
+  transparent={true}
+  animationType="slide"
+  onRequestClose={() => setSelectedOrder(null)}
+>
+  <View style={styles.modalBackground}>
+    <View style={styles.modalContent}>
+      <Text style={styles.modalTitle}>Order #{selectedOrder?._id}</Text>
+      
+      {/* Order Summary */}
+      <View style={styles.orderSummary}>
+        <Text style={styles.summaryText}>
+          Total Items: {selectedOrder?.totalQuantity || selectedOrder?.items?.reduce((sum, item) => sum + item.quantity, 0)}
+        </Text>
+        <Text style={styles.summaryText}>
+          Total Amount: Rs. {selectedOrder?.totalAmount?.toLocaleString()}
+        </Text>
+      </View>
+      
+      {/* Horizontal scroll for items */}
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.horizontalScroll}
       >
-        <View style={styles.modalBackground}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Order #{selectedOrder?._id}</Text>
-            <ScrollView>
-              {selectedOrder?.items.map((product, idx) => (
-                <View key={idx} style={{ marginBottom: 20 }}>
-                  <Text style={styles.itemName}>
-                    • {product.name} x {product.quantity}
-                  </Text>
-                  {product.size && <Text>Size: {product.size}</Text>}
-                  {product.color && <Text>Color: {product.color}</Text>}
-
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 6 }}>
-                    {product.imageUrls.map((img, i) => (
-                      <Image
-                        key={i}
-                        source={{ 
-                          uri: BASE_URL + img }}
-                        style={{ width: 200, height: 200, marginRight: 10, borderRadius: 8 }}
-                        resizeMode="cover"
-                      />
-                    ))}
-                  </ScrollView>
-                </View>
-              ))}
-            </ScrollView>
-
-            <TouchableOpacity
-              onPress={() => setSelectedOrder(null)}
-              style={{
-                marginTop: 10,
-                backgroundColor: "#FF6347",
-                padding: 10,
-                borderRadius: 6,
-                alignSelf: "center",
-              }}
-            >
-              <Text style={{ color: "#fff", fontWeight: "bold" }}>Close</Text>
-            </TouchableOpacity>
-          </View>
+        <View style={styles.itemsRow}>
+          {selectedOrder?.items?.map((product, idx) => (
+            <View key={idx} style={styles.productCard}>
+              <Text style={styles.itemName}>{product.name}</Text>
+              
+              {/* Design and Quantity Info */}
+              <View style={styles.designInfo}>
+                <Text style={styles.designText}>
+                  Design {product.designIndex + 1}
+                </Text>
+                <Text style={styles.quantityText}>
+                  Quantity: {product.quantity}
+                </Text>
+                <Text style={styles.priceText}>
+                  Rs. {product.price?.toLocaleString()} × {product.quantity} = Rs. {(product.itemTotal || product.price * product.quantity)?.toLocaleString()}
+                </Text>
+              </View>
+              
+              {product.size && (
+                <Text style={styles.itemDetail}>Size: {product.size}</Text>
+              )}
+              {product.color && (
+                <Text style={styles.itemDetail}>Color: {product.color}</Text>
+              )}
+              
+              {/* Images in column within each product card */}
+              <ScrollView 
+                style={styles.imagesColumn}
+                showsVerticalScrollIndicator={false}
+              >
+                {product.imageUrls?.map((img, i) => (
+                  <Image
+                    key={i}
+                    source={{ uri: BASE_URL + img }}
+                    style={styles.productImage}
+                    resizeMode="cover"
+                  />
+                ))}
+              </ScrollView>
+            </View>
+          ))}
         </View>
-      </Modal>
+      </ScrollView>
+
+      <TouchableOpacity
+        onPress={() => setSelectedOrder(null)}
+        style={styles.closeButton}
+      >
+        <Text style={styles.closeButtonText}>Close</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+</Modal>
     </View>
   );
 }

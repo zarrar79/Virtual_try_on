@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 8,
-    color: "#fff",
+    color: "#aaa",
   },
   reviewCard: {
     backgroundColor: "#f8f8f8",

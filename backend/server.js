@@ -705,18 +705,24 @@ app.post("/order/cod", async (req, res) => {
 
     await order.save();
 
-    // Update product stock for each design
+    // Update product stock for each design AND main product quantity
     for (const item of cart) {
+      const updateFields = {};
+      
+      // Update the specific design stock if designIndex is provided
       if (item.designIndex !== undefined) {
-        await Product.findByIdAndUpdate(
-          item._id,
-          { 
-            $inc: { 
-              [`designs.${item.designIndex}.stock`]: -item.quantity 
-            } 
-          }
-        );
+        updateFields[`designs.${item.designIndex}.stock`] = -item.quantity;
       }
+      
+      // Always update the main product quantity
+      updateFields.quantity = -item.quantity;
+      
+      await Product.findByIdAndUpdate(
+        item._id,
+        { 
+          $inc: updateFields
+        }
+      );
     }
 
     res.status(201).json({
