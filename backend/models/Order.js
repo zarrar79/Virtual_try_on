@@ -10,12 +10,17 @@ const orderSchema = new mongoose.Schema(
         name: String,
         price: Number,
         quantity: Number,
-        imageUrls: [{ type: String }], // ✅ store multiple images here
-        size: { type: String, default: null },   // optional
+        imageUrls: [{ type: String }],
+        designIndex: Number, // Which design was selected (0, 1, 2, etc.)
+        designStock: Number, // Original stock at time of order
+        size: { type: String, default: null },
+        color: { type: String, default: null },
+        itemTotal: Number, // price * quantity for this specific design
       },
     ],
     totalAmount: Number,
-    currency: String,
+    totalQuantity: Number, // Total items across all designs
+    currency: { type: String, default: "PKR" },
     paymentMethod: { type: String, enum: ["COD", "Card"], default: "COD" },
     status: { type: String, default: "pending" },
   },

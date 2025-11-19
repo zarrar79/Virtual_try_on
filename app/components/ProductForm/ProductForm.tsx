@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import ImagePickerField from "./ImagePickerField";
 import { useProductForm } from "./useProductForm";
@@ -24,8 +25,16 @@ const ProductForm: React.FC<ProductFormProps> = ({
   onSuccess,
   cancelEdit,
 }) => {
-  const { product, images, handleChange, pickImages, handleSubmit, setImages } =
-    useProductForm({ isEditing, editProductData, onSuccess });
+  const { 
+    product, 
+    designs, 
+    handleChange, 
+    pickSingleImage, 
+    handleSubmit, 
+    setDesigns,
+    markDesignAsRemoved, // NEW: Import the function
+    addNewDesign // NEW: Import the function
+  } = useProductForm({ isEditing, editProductData, onSuccess });
  
   const [loading, setLoading] = useState(false);
   const MIN_AMOUNT_PKR = 5000;
@@ -39,10 +48,59 @@ const ProductForm: React.FC<ProductFormProps> = ({
     });
   };
 
-  const removeImage = (index: number) => {
-    const updated = [...images];
-    updated.splice(index, 1);
-    setImages(updated);
+  // Handle design image pick for a specific design
+  const handleDesignImagePick = async (designIndex: number) => {
+    try {
+      const selectedImages = await pickSingleImage();
+      if (selectedImages && selectedImages.length > 0) {
+        const updatedDesigns = [...designs];
+        updatedDesigns[designIndex] = {
+          ...updatedDesigns[designIndex],
+          images: selectedImages,
+          isRemoved: false // Ensure it's not marked as removed when adding image
+        };
+        setDesigns(updatedDesigns);
+      }
+    } catch (error) {
+      console.error("Error picking design image:", error);
+      showToast("error", "Failed to pick design image");
+    }
+  };
+
+  // Handle design image removal
+  const handleDesignImageRemove = (designIndex: number) => {
+    const updatedDesigns = [...designs];
+    updatedDesigns[designIndex] = {
+      ...updatedDesigns[designIndex],
+      images: [],
+    };
+    setDesigns(updatedDesigns);
+  };
+
+  // Handle design stock change
+  const handleDesignStockChange = (designIndex: number, stock: string) => {
+    const updatedDesigns = [...designs];
+    updatedDesigns[designIndex] = {
+      ...updatedDesigns[designIndex],
+      stock,
+      isRemoved: false // Ensure it's not marked as removed when updating stock
+    };
+    setDesigns(updatedDesigns);
+  };
+
+  // Remove a specific design - UPDATED: Use markDesignAsRemoved
+  const handleRemoveDesign = (designIndex: number) => {
+    markDesignAsRemoved(designIndex);
+  };
+
+  // Restore a removed design - NEW FUNCTION
+  const handleRestoreDesign = (designIndex: number) => {
+    const updatedDesigns = [...designs];
+    updatedDesigns[designIndex] = {
+      ...updatedDesigns[designIndex],
+      isRemoved: false
+    };
+    setDesigns(updatedDesigns);
   };
 
   const handleSubmitButton = async () => {
@@ -58,8 +116,20 @@ const ProductForm: React.FC<ProductFormProps> = ({
       return;
     }
 
-    if (!images || images.length === 0) {
-      showToast("error", "Please select at least 1 image.");
+    // Validate designs - UPDATED: Consider only non-removed designs
+    const activeDesigns = designs.filter(design => !design.isRemoved);
+    
+    if (activeDesigns.length === 0) {
+      showToast("error", "Please add at least one design.");
+      return;
+    }
+
+    const invalidDesigns = activeDesigns.filter(
+      design => design.images.length === 0 || !design.stock || parseInt(design.stock) <= 0
+    );
+    
+    if (invalidDesigns.length > 0) {
+      showToast("error", "Please add image and stock for all designs.");
       return;
     }
 
@@ -74,7 +144,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
     try {
       setLoading(true);
-      await handleSubmit();
+      await handleSubmit(designs);
     } catch (error) {
       console.error("Error submitting product:", error);
       showToast("error", "Something went wrong while saving the product.");
@@ -84,7 +154,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <Text style={styles.title}>
         {isEditing ? "Edit Product" : "Add New Product"}
       </Text>
@@ -121,8 +191,96 @@ const ProductForm: React.FC<ProductFormProps> = ({
         />
       </View>
 
-      {/* MULTIPLE IMAGE SUPPORT */}
-      <ImagePickerField images={images} onPick={pickImages} onRemove={removeImage} />
+      {/* Designs Section */}
+      <View style={styles.designsSection}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
+            Product Designs ({designs.filter(d => !d.isRemoved).length} active)
+          </Text>
+          <TouchableOpacity 
+            style={styles.addDesignButton}
+            onPress={addNewDesign}
+          >
+            <Text style={styles.addDesignButtonText}>+ Add New Design</Text>
+          </TouchableOpacity>
+        </View>
+        
+        {designs.map((design, designIndex) => (
+          <View 
+            key={design.id} 
+            style={[
+              styles.designCard,
+              design.isRemoved && styles.removedDesignCard // NEW: Style for removed designs
+            ]}
+          >
+            <View style={styles.designHeader}>
+              <View style={styles.designTitleContainer}>
+                <Text style={[
+                  styles.designTitle,
+                  design.isRemoved && styles.removedDesignText
+                ]}>
+                  Design {designIndex + 1}
+                  {design.isRemoved && " (Removed)"}
+                  {design.isOld && !design.isRemoved && " (Existing)"}
+                  {!design.isOld && !design.isRemoved && " (New)"}
+                </Text>
+              </View>
+              
+              <View style={styles.designActions}>
+                {design.isRemoved ? (
+                  <TouchableOpacity 
+                    style={styles.restoreDesignButton}
+                    onPress={() => handleRestoreDesign(designIndex)}
+                  >
+                    <Text style={styles.restoreDesignText}>Restore</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity 
+                    style={styles.removeDesignButton}
+                    onPress={() => handleRemoveDesign(designIndex)}
+                  >
+                    <Text style={styles.removeDesignText}>
+                      {design.isOld ? "Remove" : "Delete"}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+            
+            {/* Design Image - Hide if removed */}
+            {!design.isRemoved && (
+              <View style={styles.designImageSection}>
+                <Text style={styles.designLabel}>Design Image*</Text>
+                <ImagePickerField 
+                  images={design.images}
+                  onPick={() => handleDesignImagePick(designIndex)}
+                  onRemove={() => handleDesignImageRemove(designIndex)}
+                />
+              </View>
+            )}
+
+            {/* Design Stock - Hide if removed */}
+            {!design.isRemoved && (
+              <View style={styles.designInputWrapper}>
+                <Text style={styles.designLabel}>Stock for Design {designIndex + 1}*</Text>
+                <TextInput
+                  style={styles.designInput}
+                  placeholder={`Enter stock for Design ${designIndex + 1}`}
+                  placeholderTextColor="#aaa"
+                  keyboardType="numeric"
+                  value={design.stock}
+                  onChangeText={(text) => handleDesignStockChange(designIndex, text)}
+                />
+              </View>
+            )}
+
+            {/* Separator line between designs */}
+            {designIndex < designs.length - 1 && (
+              <View style={styles.designSeparator} />
+            )}
+          </View>
+        ))}
+      </View>
 
       <TouchableOpacity
         style={[styles.submitButton, loading && { opacity: 0.6 }]}
@@ -143,7 +301,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
           <Text style={styles.cancelText}>Cancel Edit</Text>
         </TouchableOpacity>
       )}
-    </View>
+    </ScrollView>
   );
 };
 

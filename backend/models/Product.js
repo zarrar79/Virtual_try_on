@@ -1,6 +1,11 @@
 // models/Product.js
 const mongoose = require('mongoose');
 
+const DesignSchema = new mongoose.Schema({
+  imageUrl: { type: String, required: true },
+  stock: { type: Number, required: true, min: 0 }
+});
+
 const ProductSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
   description: { type: String, required: true },
@@ -8,7 +13,7 @@ const ProductSchema = new mongoose.Schema({
   brand: { type: String, required: true },
   quantity: { type: Number, required: true },
   category: { type: String, required: true },
-  imageUrls: { type: [String], required: true }   // <- MULTIPLE IMAGES
+  designs: [DesignSchema]
 });
 
 const Product = mongoose.model('Product', ProductSchema);

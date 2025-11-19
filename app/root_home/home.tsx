@@ -58,6 +58,8 @@ export default function Home() {
       const loadUserIdAndReviews = async () => {
         try {
           const id = await AsyncStorage.getItem('user');
+          console.log(id,'---->id');
+          
           if (id) {
             setUserId(id);
             await loadDismissedReviews();

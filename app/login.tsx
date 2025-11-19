@@ -56,6 +56,8 @@ export default function Login() {
       if (response.ok && data.success) {
         await AsyncStorage.setItem('token', data.token);
         await AsyncStorage.setItem('user', data.user._id);
+        console.log(data.user._id,'--->user id');
+        
         await AsyncStorage.setItem('user_name', data.user.name);
 
         router.replace('/root_home/home');

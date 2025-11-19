@@ -14,6 +14,8 @@ export default function DrawerLayout() {
                 style: 'destructive',
                 onPress: async () => {
                     await AsyncStorage.removeItem('token');
+                    await AsyncStorage.removeItem('user');
+                    await AsyncStorage.removeItem('user_name');
                     router.replace('/login');
                 },
             },

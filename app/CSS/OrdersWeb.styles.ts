@@ -10,12 +10,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#1E1E1E", // dark gray for contrast on black background
     borderRadius: 12,
     padding: 16,
-    shadowColor: "#00FFFF", // subtle cyan glow
+    shadowColor: "#00FFFF",
     shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: 3 },
     shadowRadius: 10,
     elevation: 6,
-    width: "30%", // 👈 fits 3 per row with space-between
+    width: "30%",
     minWidth: 250,
     alignSelf: "flex-start",
     marginTop: 10,

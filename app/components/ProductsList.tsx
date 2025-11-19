@@ -10,11 +10,18 @@ import {
   Animated,
   Pressable,
   TextInput,
+  Modal,
+  ScrollView,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useApi } from "../context/ApiContext";
 import styles from "../CSS/ProductsList.styles";
 import Toast from "react-native-toast-message";
+
+interface Design {
+  imageUrl: string;
+  stock: number;
+}
 
 interface Product {
   _id: string;
@@ -24,7 +31,7 @@ interface Product {
   price: number;
   quantity: number;
   description: string;
-  imageUrls?: string[];
+  designs?: Design[];
 }
 
 interface ProductsListProps {
@@ -39,7 +46,11 @@ const ProductsList: React.FC<ProductsListProps> = ({ refresh, onEdit }) => {
   const [numColumns, setNumColumns] = useState<number>(4);
   const [cardWidth, setCardWidth] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const modalAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
 
   // ✅ Responsive grid setup
   useEffect(() => {
@@ -105,11 +116,11 @@ const ProductsList: React.FC<ProductsListProps> = ({ refresh, onEdit }) => {
       if (response.ok) {
         Alert.alert("Deleted", data.message);
         Toast.show({
-                        type: "success",
-                        text1: "Product deleted successfully!",
-                        position: "top",
-                        visibilityTime: 2500,
-                      });
+          type: "success",
+          text1: "Product deleted successfully!",
+          position: "top",
+          visibilityTime: 2500,
+        });
         setProducts((prev) => prev.filter((p) => p._id !== item._id));
         setFilteredProducts((prev) => prev.filter((p) => p._id !== item._id));
       } else {
@@ -117,14 +128,72 @@ const ProductsList: React.FC<ProductsListProps> = ({ refresh, onEdit }) => {
       }
     } catch (error) {
       Toast.show({
-                        type: "error",
-                        text1: "Failed to delete product!",
-                        position: "top",
-                        visibilityTime: 2500,
-                      });
+        type: "error",
+        text1: "Failed to delete product!",
+        position: "top",
+        visibilityTime: 2500,
+      });
       console.error(error);
     }
   };
+
+  // ✅ Show designs popup
+  const showDesignsPopup = (product: Product) => {
+    setSelectedProduct(product);
+    setModalVisible(true);
+    
+    // Reset animations
+    modalAnim.setValue(0);
+    slideAnim.setValue(50);
+    
+    // Start animations
+    Animated.parallel([
+      Animated.timing(modalAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  // ✅ Close designs popup
+  const closeDesignsPopup = () => {
+    Animated.parallel([
+      Animated.timing(modalAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 50,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setModalVisible(false);
+      setSelectedProduct(null);
+    });
+  };
+
+  // ✅ Render design item for horizontal layout
+  const renderDesignItem = ({ item, index }: { item: Design; index: number }) => (
+    <View style={styles.designItem}>
+      <Image
+        source={{ uri: `${API_BASE}${item.imageUrl}` }}
+        style={styles.designImage}
+        resizeMode="cover"
+      />
+      <View style={styles.designInfo}>
+        <Text style={styles.designTitle}>Design {index + 1}</Text>
+        <Text style={styles.designStock}>Stock: {item.stock}</Text>
+      </View>
+    </View>
+  );
 
   // ✅ Render each product card
   const renderCard = ({ item }: { item: Product }) => {
@@ -144,10 +213,14 @@ const ProductsList: React.FC<ProductsListProps> = ({ refresh, onEdit }) => {
           { width: cardWidth, transform: [{ scale: scaleAnim }] },
         ]}
       >
-        <Pressable onPressIn={onPressIn} onPressOut={onPressOut}>
-          {item.imageUrls && (
+        <Pressable 
+          onPressIn={onPressIn} 
+          onPressOut={onPressOut}
+          onPress={() => showDesignsPopup(item)}
+        >
+          {item.designs && item.designs.length > 0 && (
             <Image
-              source={{ uri: `${API_BASE}${item.imageUrls[0]}` }}
+              source={{ uri: `${API_BASE}${item.designs[0].imageUrl}` }}
               style={styles.productImage}
               resizeMode="cover"
             />
@@ -166,6 +239,15 @@ const ProductsList: React.FC<ProductsListProps> = ({ refresh, onEdit }) => {
             >
               {item.description}
             </Text>
+
+            {/* Designs indicator */}
+            {item.designs && item.designs.length > 0 && (
+              <View style={styles.designsIndicator}>
+                <Text style={styles.designsIndicatorText}>
+                  {item.designs.length} Design{item.designs.length > 1 ? 's' : ''}
+                </Text>
+              </View>
+            )}
 
             <View style={styles.actionButtons}>
               <TouchableOpacity onPress={() => onEdit(item)}>
@@ -195,6 +277,7 @@ const ProductsList: React.FC<ProductsListProps> = ({ refresh, onEdit }) => {
           onChangeText={handleSearch}
         />
       </View>
+
       <Animated.View style={{ opacity: fadeAnim, flex: 1 }}>
         <FlatList
           key={numColumns}
@@ -209,6 +292,83 @@ const ProductsList: React.FC<ProductsListProps> = ({ refresh, onEdit }) => {
           }
         />
       </Animated.View>
+
+      {/* ✅ Designs Popup Modal */}
+      <Modal
+        visible={modalVisible}
+        transparent={true}
+        animationType="none"
+        onRequestClose={closeDesignsPopup}
+      >
+        <View style={styles.modalOverlay}>
+          <Animated.View 
+            style={[
+              styles.modalContainer,
+              {
+                opacity: modalAnim,
+                transform: [{ translateY: slideAnim }]
+              }
+            ]}
+          >
+            {selectedProduct && (
+              <>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>
+                    {selectedProduct.name} - Designs
+                  </Text>
+                  <TouchableOpacity 
+                    style={styles.closeButton}
+                    onPress={closeDesignsPopup}
+                  >
+                    <Text style={styles.closeButtonText}>×</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.designsContainer}>
+                  {selectedProduct.designs && selectedProduct.designs.length > 0 ? (
+                    <ScrollView 
+                      horizontal={true}
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.horizontalDesignsList}
+                    >
+                      {selectedProduct.designs.map((design, index) => (
+                        <View key={index} style={styles.designItemHorizontal}>
+                          <Image
+                            source={{ uri: `${API_BASE}${design.imageUrl}` }}
+                            style={styles.designImageHorizontal}
+                            resizeMode="cover"
+                          />
+                          <View style={styles.designInfoHorizontal}>
+                            <Text style={styles.designTitle}>Design {index + 1}</Text>
+                            <Text style={styles.designStock}>Stock: {design.stock}</Text>
+                          </View>
+                        </View>
+                      ))}
+                    </ScrollView>
+                  ) : (
+                    <Text style={styles.noDesignsText}>No designs available</Text>
+                  )}
+                </View>
+
+                <View style={styles.modalFooter}>
+                  <Text style={styles.totalStock}>
+                    Total Stock: {selectedProduct.quantity}
+                  </Text>
+                  <TouchableOpacity 
+                    style={styles.editAllButton}
+                    onPress={() => {
+                      closeDesignsPopup();
+                      onEdit(selectedProduct);
+                    }}
+                  >
+                    <Text style={styles.editAllButtonText}>Edit All Designs</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </Animated.View>
+        </View>
+      </Modal>
     </View>
   );
 };

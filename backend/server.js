@@ -90,7 +90,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use("/backend/uploads", express.static(path.join(__dirname, "/uploads")));
 app.use(express.urlencoded({ extended: true }));
 
-const BASE_IP_ADD = "192.168.1.13";
+const BASE_IP_ADD = "192.168.71.237";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // MongoDB connection
@@ -268,12 +268,26 @@ app.post("/review", async (req, res) => {
 // GET /api/reviews/product/:productId
  app.get("/review/product/:productId", async (req, res) => {
   try {
-    const reviews = await Review.find({ product: req.params.productId })
-      .populate("user", "name email") // populate user name and email only
+    const { productId } = req.params;
+    
+    // First, get reviews without population to see the raw data
+    const rawReviews = await Review.find({ product: productId });
+    console.log("Raw reviews (no population):", rawReviews);
+
+    // Check if users exist for these reviews
+    for (let review of rawReviews) {
+      const userExists = await User.findById(review.user);
+      console.log(`Review ${review._id}: User ${review.user} exists:`, !!userExists);
+    }
+
+    // Now try population
+    const populatedReviews = await Review.find({ product: productId })
+      .populate("user", "name email")
       .sort({ createdAt: -1 });
 
-    console.log(reviews, "--->reviews");
-    res.json(reviews);
+    console.log("Populated reviews:", populatedReviews);
+    res.json(populatedReviews);
+    
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -295,39 +309,58 @@ app.get("/review/check/:orderId/:productId/:userId", async (req, res) => {
 
 // ========================= Product Routes ========================= //
 
-// CREATE product with image
+// CREATE product with designs only
 app.post("/products", authMiddleware, async (req, res) => {
   try {
-    const { images, name, brand, category, price, quantity, description } =
+    const { name, brand, category, price, quantity, description, designs } =
       req.body;
 
     console.log(req.body);
 
-    // Validate
-    if (!images || !Array.isArray(images) || images.length === 0) {
-      return res.status(400).json({ error: "At least one image is required." });
-    }
+    // Validate required fields
     if (!name || !category || !quantity) {
       return res.status(400).json({
         error: "Missing required fields: name, category, quantity",
       });
     }
 
-    const savedImageUrls = [];
-
-    // Process each image
-    for (let img of images) {
-      const base64Data = img.replace(/^data:image\/\w+;base64,/, "");
-      const buffer = Buffer.from(base64Data, "base64");
-
-      const filename = `${Date.now()}-${Math.random()}.png`;
-      const uploadPath = path.join(__dirname, "uploads", filename);
-
-      fs.writeFileSync(uploadPath, buffer);
-
-      const url = `/backend/uploads/${filename}`;
-      savedImageUrls.push(url);
+    // Validate that designs are provided
+    if (!designs || !Array.isArray(designs) || designs.length === 0) {
+      return res.status(400).json({ 
+        error: "At least one design with image is required." 
+      });
     }
+
+    // Process design images
+    const savedDesigns = [];
+    for (let design of designs) {
+      if (design.image) {
+        const base64Data = design.image.replace(/^data:image\/\w+;base64,/, "");
+        const buffer = Buffer.from(base64Data, "base64");
+
+        const filename = `design-${Date.now()}-${Math.random()}.png`;
+        const uploadPath = path.join(__dirname, "uploads", filename);
+
+        fs.writeFileSync(uploadPath, buffer);
+
+        const designImageUrl = `/backend/uploads/${filename}`;
+        
+        savedDesigns.push({
+          imageUrl: designImageUrl,
+          stock: Number(design.stock) || 0
+        });
+      }
+    }
+
+    // Validate that we have at least one design image
+    if (savedDesigns.length === 0) {
+      return res.status(400).json({ 
+        error: "At least one valid design image is required." 
+      });
+    }
+
+    // Calculate total quantity from designs
+    const totalQuantity = savedDesigns.reduce((total, design) => total + design.stock, 0);
 
     // Save product in database
     const product = new Product({
@@ -335,9 +368,9 @@ app.post("/products", authMiddleware, async (req, res) => {
       brand,
       category,
       price: Number(price),
-      quantity: Number(quantity),
+      quantity: totalQuantity,
       description,
-      imageUrls: savedImageUrls,
+      designs: savedDesigns
     });
 
     const saved = await product.save();
@@ -373,51 +406,75 @@ app.get("/products/:id", authMiddleware, async (req, res) => {
 
 // UPDATE product
 
+// In your backend PUT /products/:id endpoint
 app.put("/products/:id", authMiddleware, async (req, res) => {
   try {
-    const { name, description, price, brand, category, quantity, imageUrls, images } = req.body;
+    const { designs, name, brand, category, price, quantity, description, removedDesigns } = req.body;
+    const productId = req.params.id;
 
-    let finalImageUrls = [];
+    console.log("Received designs for update:", designs);
+    console.log("Removed designs:", removedDesigns);
 
-    // Keep old images
-    if (imageUrls && Array.isArray(imageUrls)) {
-      finalImageUrls = [...imageUrls];
-    }
+    // Process design images
+    const savedDesigns = [];
+    if (designs && Array.isArray(designs) && designs.length > 0) {
+      for (let design of designs) {
+        if (design.image) {
+          if (design.image.startsWith('/backend/uploads/') || design.image.startsWith('http')) {
+            // Existing design image - keep as is
+            console.log("Keeping existing design image:", design.image);
+            savedDesigns.push({
+              imageUrl: design.image,
+              stock: Number(design.stock) || 0
+            });
+          } else {
+            // New design image - process and save
+            console.log("Processing new design image");
+            const base64Data = design.image.replace(/^data:image\/\w+;base64,/, "");
+            const buffer = Buffer.from(base64Data, "base64");
 
-    // Save new base64 images
-    if (images && Array.isArray(images)) {
-      for (let img of images) {
-        const base64Data = img.replace(/^data:image\/\w+;base64,/, "");
-        const buffer = Buffer.from(base64Data, "base64");
+            const filename = `design-${Date.now()}-${Math.random()}.png`;
+            const uploadPath = path.join(__dirname, "uploads", filename);
 
-        const filename = `${Date.now()}-${Math.random()}.png`;
-        const uploadPath = path.join(__dirname, "uploads", filename);
+            fs.writeFileSync(uploadPath, buffer);
 
-        fs.writeFileSync(uploadPath, buffer);
-
-        finalImageUrls.push(`/backend/uploads/${filename}`);
+            const designImageUrl = `/backend/uploads/${filename}`;
+            
+            savedDesigns.push({
+              imageUrl: designImageUrl,
+              stock: Number(design.stock) || 0
+            });
+          }
+        }
       }
     }
 
-    const updateData = {
-      name,
-      description,
-      price,
-      brand,
-      category,
-      quantity,
-      imageUrls: finalImageUrls,
-    };
+    console.log("Final saved designs:", savedDesigns);
 
-    const updated = await Product.findByIdAndUpdate(req.params.id, updateData, {
-      new: true,
-    });
+    // Update product with new designs array
+    const updatedProduct = await Product.findByIdAndUpdate(
+      productId,
+      {
+        name,
+        brand,
+        category,
+        price: Number(price),
+        quantity: Number(quantity),
+        description,
+        designs: savedDesigns // This replaces the entire designs array
+      },
+      { new: true }
+    );
 
-    if (!updated) return res.status(404).json({ message: "Product not found" });
+    if (!updatedProduct) {
+      return res.status(404).json({ error: "Product not found" });
+    }
 
-    res.json(updated);
+    res.json(updatedProduct);
+
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    console.error("Update error:", err);
+    res.status(500).json({ error: "Something went wrong: " + err.message });
   }
 });
 
@@ -612,8 +669,15 @@ app.post("/order/cod", async (req, res) => {
       return res.status(400).json({ message: "Invalid userId format" });
     }
 
+    // Calculate total amount including all designs with their quantities
     const totalAmount = cart.reduce(
-      (sum, item) => sum + item.price * (item.quantity || 1),
+      (sum, item) => sum + (item.price * (item.quantity || 1)),
+      0
+    );
+
+    // Calculate total quantity across all designs
+    const totalQuantity = cart.reduce(
+      (sum, item) => sum + (item.quantity || 1),
       0
     );
 
@@ -626,10 +690,14 @@ app.post("/order/cod", async (req, res) => {
         price: item.price,
         quantity: item.quantity,
         imageUrls: item.imageUrls,
-        size: item.selectedSize || null,
-        color: item.selectedColor || null,
+        designIndex: item.designIndex, // Store which design was selected
+        designStock: item.designStock, // Store original stock
+        size: item.size || null,
+        color: item.color || null,
+        itemTotal: item.price * (item.quantity || 1), // Individual item total
       })),
       totalAmount,
+      totalQuantity, // Total items across all designs
       currency: "PKR",
       status: "pending",
       paymentMethod: "COD",
@@ -637,9 +705,28 @@ app.post("/order/cod", async (req, res) => {
 
     await order.save();
 
+    // Update product stock for each design
+    for (const item of cart) {
+      if (item.designIndex !== undefined) {
+        await Product.findByIdAndUpdate(
+          item._id,
+          { 
+            $inc: { 
+              [`designs.${item.designIndex}.stock`]: -item.quantity 
+            } 
+          }
+        );
+      }
+    }
+
     res.status(201).json({
       message: "Order placed successfully with Cash on Delivery",
       order,
+      summary: {
+        totalItems: totalQuantity,
+        totalAmount: totalAmount,
+        designsOrdered: cart.length
+      }
     });
   } catch (error) {
     console.error("COD Order Error:", error);

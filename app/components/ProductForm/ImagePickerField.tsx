@@ -4,7 +4,7 @@ import { View, Text, TouchableOpacity, Image } from "react-native";
 import styles from "../../CSS/ImagePickerField.styles";
 
 interface ImagePickerFieldProps {
-  images: { uri: string }[];
+  images: string[];
   onPick: () => void;
   onRemove: (index: number) => void;
 }
@@ -16,24 +16,20 @@ const ImagePickerField: React.FC<ImagePickerFieldProps> = ({
 }) => {
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.button} onPress={onPick}>
-        <Text style={styles.buttonText}>
-          {images.length > 0 ? "Add More Images" : "Select Images"}
-        </Text>
-      </TouchableOpacity>
-
       {images.length === 0 ? (
-        <Text style={styles.placeholderText}>No images selected</Text>
+        <TouchableOpacity style={styles.addButton} onPress={onPick}>
+          <Text style={styles.addButtonText}>+ Add Image</Text>
+        </TouchableOpacity>
       ) : (
         <View style={styles.imageContainer}>
           {images.map((img, index) => (
             <View key={index} style={styles.imageWrapper}>
-              <Image source={{ uri: img.uri }} style={styles.image} />
+              <Image source={{ uri: img }} style={styles.image} />
               <TouchableOpacity
                 style={styles.removeButton}
                 onPress={() => onRemove(index)}
               >
-                <Text style={styles.removeText}>X</Text>
+                <Text style={styles.removeText}>×</Text>
               </TouchableOpacity>
             </View>
           ))}
