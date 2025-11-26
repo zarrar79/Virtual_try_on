@@ -21,11 +21,11 @@ interface Product {
   _id: string;
   name: string;
   description: string;
+  designs: { imageUrl: string, stock: number, id: object }[];
   price: number;
   brand: string;
   quantity: number;
   category: string;
-  imageUrls: string[];
 }
 
 const ProductsPageWeb: React.FC = () => {
@@ -148,9 +148,8 @@ const ProductsPageWeb: React.FC = () => {
                   },
                 ]}
               >
-                {console.log(product.imageUrls)}
                 <Image
-                  source={{ uri: `${BASE_URL}${product.imageUrls[0]}` }}
+                  source={{ uri: `${BASE_URL}${product.designs[0].imageUrl}` }}
                   style={styles.productImage}
                   resizeMode="cover"
                 />

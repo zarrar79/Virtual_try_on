@@ -449,6 +449,329 @@ summaryTotal: {
   borderTopColor: '#ccc',
   paddingTop: 8,
 },
+tryOnIconContainer: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 10,
+  },
+  tryOnIcon: {
+    backgroundColor: '#411900',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  tryOnIconText: {
+    fontSize: 20,
+  },
+  
+  // Try-On Modal Styles
+  tryOnModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  tryOnModalContainer: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 0,
+    width: '90%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  tryOnModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  tryOnModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#411900',
+  },
+  tryOnModalClose: {
+    fontSize: 20,
+    color: '#666',
+    fontWeight: 'bold',
+  },
+  tryOnModalContent: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  tryOnModalText: {
+    fontSize: 16,
+    textAlign: 'center',
+    color: '#333',
+    marginBottom: 16,
+    lineHeight: 22,
+  },
+  tryOnPreviewImage: {
+    width: 200,
+    height: 200,
+    borderRadius: 12,
+    marginVertical: 16,
+    borderWidth: 2,
+    borderColor: '#f0f0f0',
+  },
+  tryOnModalSubtext: {
+    fontSize: 14,
+    textAlign: 'center',
+    color: '#666',
+    fontStyle: 'italic',
+    marginTop: 8,
+  },
+  tryOnModalFooter: {
+    flexDirection: 'row',
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    gap: 12,
+  },
+  tryOnCancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#f8f9fa',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  tryOnCancelText: {
+    fontSize: 16,
+    color: '#666',
+    fontWeight: '600',
+  },
+  tryOnConfirmButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#411900',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tryOnConfirmText: {
+    fontSize: 16,
+    color: 'white',
+    fontWeight: 'bold',
+  },
+// Images Container
+imagesContainer: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  marginBottom: 20,
+  gap: 10,
+},
+imageSection: {
+  flex: 1,
+  alignItems: 'center',
+},
+imageSectionTitle: {
+  fontSize: 14,
+  fontWeight: '600',
+  color: '#666',
+  marginBottom: 8,
+},
+
+// Upload Placeholder
+uploadPlaceholder: {
+  width: 120,
+  height: 160,
+  borderRadius: 8,
+  borderWidth: 2,
+  borderColor: '#ddd',
+  borderStyle: 'dashed',
+  justifyContent: 'center',
+  alignItems: 'center',
+  backgroundColor: '#f8f9fa',
+},
+uploadIcon: {
+  fontSize: 24,
+  marginBottom: 8,
+},
+uploadText: {
+  fontSize: 12,
+  color: '#666',
+  textAlign: 'center',
+},
+
+// Upload Options
+uploadOptions: {
+  flexDirection: 'row',
+  justifyContent: 'center',
+  gap: 20,
+  marginBottom: 20,
+},
+uploadOptionButton: {
+  alignItems: 'center',
+  padding: 12,
+  borderRadius: 8,
+  backgroundColor: '#f8f9fa',
+  minWidth: 80,
+},
+uploadOptionIcon: {
+  fontSize: 20,
+  marginBottom: 4,
+},
+uploadOptionText: {
+  fontSize: 12,
+  color: '#333',
+  fontWeight: '500',
+},
+
+// Try-On Process Button
+tryOnProcessButton: {
+  backgroundColor: '#411900',
+  paddingVertical: 14,
+  borderRadius: 8,
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginTop: 10,
+},
+tryOnProcessText: {
+  fontSize: 16,
+  color: 'white',
+  fontWeight: 'bold',
+},
+
+// Result Styles
+tryOnResultImage: {
+  width: 250,
+  height: 300,
+  borderRadius: 12,
+  marginVertical: 16,
+  alignSelf: 'center',
+  borderWidth: 2,
+  borderColor: '#f0f0f0',
+},
+tryOnResultSubtext: {
+  fontSize: 14,
+  textAlign: 'center',
+  color: '#666',
+  marginBottom: 20,
+},
+resultActions: {
+  flexDirection: 'row',
+  gap: 12,
+},
+saveResultButton: {
+  flex: 1,
+  paddingVertical: 12,
+  borderRadius: 8,
+  backgroundColor: '#28a745',
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+saveResultText: {
+  fontSize: 14,
+  color: 'white',
+  fontWeight: '600',
+},
+tryAnotherButton: {
+  flex: 1,
+  paddingVertical: 12,
+  borderRadius: 8,
+  backgroundColor: '#17a2b8',
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+tryAnotherText: {
+  fontSize: 14,
+  color: 'white',
+  fontWeight: '600',
+},
+
+// Upload Section
+uploadSection: {
+  width: '100%',
+  alignItems: 'center',
+  marginBottom: 20,
+},
+uploadSubtext: {
+  fontSize: 12,
+  color: '#666',
+  textAlign: 'center',
+},
+
+// Uploaded Image
+uploadedImageContainer: {
+  alignItems: 'center',
+},
+uploadedImage: {
+  width: 200,
+  height: 200,
+  borderRadius: 12,
+  marginBottom: 12,
+  borderWidth: 2,
+  borderColor: '#f0f0f0',
+},
+changePhotoButton: {
+  paddingHorizontal: 16,
+  paddingVertical: 8,
+  borderRadius: 6,
+  backgroundColor: '#f0f0f0',
+},
+changePhotoText: {
+  fontSize: 14,
+  color: '#333',
+  fontWeight: '500',
+},
+processingContainer: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 8,
+},
+processingText: {
+  fontSize: 16,
+  color: 'white',
+  fontWeight: '500',
+},
+
+// Result Styles
+resultContainer: {
+  alignItems: 'center',
+  marginBottom: 20,
+},
+permissionStatus: {
+    alignItems: 'center',
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#f8f9fa',
+    width: '100%',
+  },
+  permissionText: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 8,
+  },
+  permissionErrorText: {
+    fontSize: 16,
+    color: '#dc3545',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  permissionSubtext: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+  },
 });
 
 export default styles;
