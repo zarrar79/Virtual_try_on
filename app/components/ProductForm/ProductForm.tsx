@@ -1,151 +1,303 @@
-// components/ProductForm/ProductForm.tsx
-import React from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  ScrollView,
+} from "react-native";
 import ImagePickerField from "./ImagePickerField";
 import { useProductForm } from "./useProductForm";
+import styles from "../../CSS/ProductForm.styles";
+import Toast from "react-native-toast-message";
 
 interface ProductFormProps {
-    isEditing: boolean;
-    editProductData?: any;
-    onSuccess: () => void;
-    cancelEdit?: () => void;
+  isEditing: boolean;
+  editProductData?: any;
+  onSuccess: () => void;
+  cancelEdit?: () => void;
 }
 
-const ProductForm: React.FC<ProductFormProps> = ({ isEditing, editProductData, onSuccess, cancelEdit }) => {
-    const { product, image, handleChange, pickImage, handleSubmit: submitForm } =
-        useProductForm({ isEditing, editProductData, onSuccess });
-    const MIN_AMOUNT_PKR = 5000;
+const ProductForm: React.FC<ProductFormProps> = ({
+  isEditing,
+  editProductData,
+  onSuccess,
+  cancelEdit,
+}) => {
+  const { 
+    product, 
+    designs, 
+    handleChange, 
+    pickSingleImage, 
+    handleSubmit, 
+    setDesigns,
+    markDesignAsRemoved, // NEW: Import the function
+    addNewDesign // NEW: Import the function
+  } = useProductForm({ isEditing, editProductData, onSuccess });
+ 
+  const [loading, setLoading] = useState(false);
+  const MIN_AMOUNT_PKR = 5000;
 
-    const handleSubmit = () => {
-        // Required fields validation
-        if (!product.name || !product.brand || !product.category || !product.price || !product.quantity) {
-            return Alert.alert("Validation Error", "Please fill all required fields.");
-        }
+  const showToast = (type: "success" | "error", message: string) => {
+    Toast.show({
+      type,
+      text1: message,
+      position: "top",
+      visibilityTime: 2500,
+    });
+  };
 
-        // Image validation
-        if (!image) {
-            return Alert.alert("Validation Error", "Please select an image.");
-        }
+  // Handle design image pick for a specific design
+  const handleDesignImagePick = async (designIndex: number) => {
+    try {
+      const selectedImages = await pickSingleImage();
+      if (selectedImages && selectedImages.length > 0) {
+        const updatedDesigns = [...designs];
+        updatedDesigns[designIndex] = {
+          ...updatedDesigns[designIndex],
+          images: selectedImages,
+          isRemoved: false // Ensure it's not marked as removed when adding image
+        };
+        setDesigns(updatedDesigns);
+      }
+    } catch (error) {
+      console.error("Error picking design image:", error);
+      showToast("error", "Failed to pick design image");
+    }
+  };
 
-        // Quantity validation for Stripe minimum
-        const totalAmount = Number(product.price) * Number(product.quantity);
-        if (totalAmount < MIN_AMOUNT_PKR) {
-            return Alert.alert(
-                "Validation Error",
-                `Total amount must be at least Rs.${MIN_AMOUNT_PKR} for Stripe payment.`
-            );
-        }
-
-        submitForm();
+  // Handle design image removal
+  const handleDesignImageRemove = (designIndex: number) => {
+    const updatedDesigns = [...designs];
+    updatedDesigns[designIndex] = {
+      ...updatedDesigns[designIndex],
+      images: [],
     };
+    setDesigns(updatedDesigns);
+  };
 
+  // Handle design stock change
+  const handleDesignStockChange = (designIndex: number, stock: string) => {
+    const updatedDesigns = [...designs];
+    updatedDesigns[designIndex] = {
+      ...updatedDesigns[designIndex],
+      stock,
+      isRemoved: false // Ensure it's not marked as removed when updating stock
+    };
+    setDesigns(updatedDesigns);
+  };
 
-    return (
-        <View style={styles.container}>
-            <Text style={styles.title}>
-                {isEditing ? "Edit Product" : "Add New Product"}
-            </Text>
+  // Remove a specific design - UPDATED: Use markDesignAsRemoved
+  const handleRemoveDesign = (designIndex: number) => {
+    markDesignAsRemoved(designIndex);
+  };
 
-            {(["name", "brand", "category", "price", "quantity"] as (keyof typeof product)[]).map((field) => (
-                <View key={field} style={styles.inputWrapper}>
-                    <Text style={styles.label}>
-                        {field.charAt(0).toUpperCase() + field.slice(1)}
-                    </Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder={`Enter ${field}`}
-                        placeholderTextColor="#aaa"
-                        keyboardType={["price", "quantity"].includes(field) ? "numeric" : "default"}
-                        value={product[field]?.toString() || ""}
-                        onChangeText={(text) => handleChange(field, text)}
-                    />
-                </View>
-            ))}
+  // Restore a removed design - NEW FUNCTION
+  const handleRestoreDesign = (designIndex: number) => {
+    const updatedDesigns = [...designs];
+    updatedDesigns[designIndex] = {
+      ...updatedDesigns[designIndex],
+      isRemoved: false
+    };
+    setDesigns(updatedDesigns);
+  };
 
-            <View style={styles.inputWrapper}>
-                <Text style={styles.label}>Description</Text>
-                <TextInput
-                    style={[styles.input, styles.description]}
-                    placeholder="Enter description"
-                    multiline
-                    value={product.description || ""}
-                    onChangeText={(text) => handleChange("description", text)}
-                    placeholderTextColor="#aaa"
-                />
-            </View>
+  const handleSubmitButton = async () => {
+    if (
+      !product.name ||
+      !product.brand ||
+      !product.category ||
+      !product.price ||
+      !product.quantity ||
+      !product.description
+    ) {
+      showToast("error", "Please fill all required fields.");
+      return;
+    }
 
-            <ImagePickerField image={image} onPick={pickImage} />
+    // Validate designs - UPDATED: Consider only non-removed designs
+    const activeDesigns = designs.filter(design => !design.isRemoved);
+    
+    if (activeDesigns.length === 0) {
+      showToast("error", "Please add at least one design.");
+      return;
+    }
 
-            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-                <Text style={styles.submitButtonText}>
-                    {isEditing ? "Update Product" : "Add Product"}
-                </Text>
-            </TouchableOpacity>
-
-            {isEditing && cancelEdit && (
-                <TouchableOpacity onPress={cancelEdit} style={styles.cancelButton}>
-                    <Text style={styles.cancelText}>Cancel Edit</Text>
-                </TouchableOpacity>
-            )}
-        </View>
+    const invalidDesigns = activeDesigns.filter(
+      design => design.images.length === 0 || !design.stock || parseInt(design.stock) <= 0
     );
+    
+    if (invalidDesigns.length > 0) {
+      showToast("error", "Please add image and stock for all designs.");
+      return;
+    }
+
+    const totalAmount = Number(product.price) * Number(product.quantity);
+    if (totalAmount < MIN_AMOUNT_PKR) {
+      showToast(
+        "error",
+        `Total amount must be at least Rs.${MIN_AMOUNT_PKR} for Stripe payment.`
+      );
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await handleSubmit(designs);
+    } catch (error) {
+      console.error("Error submitting product:", error);
+      showToast("error", "Something went wrong while saving the product.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <Text style={styles.title}>
+        {isEditing ? "Edit Product" : "Add New Product"}
+      </Text>
+
+      {(["name", "brand", "category", "price", "quantity"] as (keyof typeof product)[]).map(
+        (field) => (
+          <View key={field} style={styles.inputWrapper}>
+            <Text style={styles.label}>
+              {field.charAt(0).toUpperCase() + field.slice(1)}*
+            </Text>
+            <TextInput
+              style={styles.input}
+              placeholder={`Enter ${field}`}
+              placeholderTextColor="#aaa"
+              keyboardType={
+                ["price", "quantity"].includes(field) ? "numeric" : "default"
+              }
+              value={product[field]?.toString() || ""}
+              onChangeText={(text) => handleChange(field, text)}
+            />
+          </View>
+        )
+      )}
+
+      <View style={styles.inputWrapper}>
+        <Text style={styles.label}>Description*</Text>
+        <TextInput
+          style={[styles.input, styles.description]}
+          placeholder="Enter description"
+          multiline
+          value={product.description || ""}
+          onChangeText={(text) => handleChange("description", text)}
+          placeholderTextColor="#aaa"
+        />
+      </View>
+
+      {/* Designs Section */}
+      <View style={styles.designsSection}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
+            Product Designs ({designs.filter(d => !d.isRemoved).length} active)
+          </Text>
+          <TouchableOpacity 
+            style={styles.addDesignButton}
+            onPress={addNewDesign}
+          >
+            <Text style={styles.addDesignButtonText}>+ Add New Design</Text>
+          </TouchableOpacity>
+        </View>
+        
+        {designs.map((design, designIndex) => (
+          <View 
+            key={design.id} 
+            style={[
+              styles.designCard,
+              design.isRemoved && styles.removedDesignCard // NEW: Style for removed designs
+            ]}
+          >
+            <View style={styles.designHeader}>
+              <View style={styles.designTitleContainer}>
+                <Text style={[
+                  styles.designTitle,
+                  design.isRemoved && styles.removedDesignText
+                ]}>
+                  Design {designIndex + 1}
+                  {design.isRemoved && " (Removed)"}
+                  {design.isOld && !design.isRemoved && " (Existing)"}
+                  {!design.isOld && !design.isRemoved && " (New)"}
+                </Text>
+              </View>
+              
+              <View style={styles.designActions}>
+                {design.isRemoved ? (
+                  <TouchableOpacity 
+                    style={styles.restoreDesignButton}
+                    onPress={() => handleRestoreDesign(designIndex)}
+                  >
+                    <Text style={styles.restoreDesignText}>Restore</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity 
+                    style={styles.removeDesignButton}
+                    onPress={() => handleRemoveDesign(designIndex)}
+                  >
+                    <Text style={styles.removeDesignText}>
+                      {design.isOld ? "Remove" : "Delete"}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+            
+            {/* Design Image - Hide if removed */}
+            {!design.isRemoved && (
+              <View style={styles.designImageSection}>
+                <Text style={styles.designLabel}>Design Image*</Text>
+                <ImagePickerField 
+                  images={design.images}
+                  onPick={() => handleDesignImagePick(designIndex)}
+                  onRemove={() => handleDesignImageRemove(designIndex)}
+                />
+              </View>
+            )}
+
+            {/* Design Stock - Hide if removed */}
+            {!design.isRemoved && (
+              <View style={styles.designInputWrapper}>
+                <Text style={styles.designLabel}>Stock for Design {designIndex + 1}*</Text>
+                <TextInput
+                  style={styles.designInput}
+                  placeholder={`Enter stock for Design ${designIndex + 1}`}
+                  placeholderTextColor="#aaa"
+                  keyboardType="numeric"
+                  value={design.stock}
+                  onChangeText={(text) => handleDesignStockChange(designIndex, text)}
+                />
+              </View>
+            )}
+          </View>
+        ))}
+      </View>
+
+      <TouchableOpacity
+        style={[styles.submitButton, loading && { opacity: 0.6 }]}
+        onPress={handleSubmitButton}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.submitButtonText}>
+            {isEditing ? "Update Product" : "Add Product"}
+          </Text>
+        )}
+      </TouchableOpacity>
+
+      {isEditing && cancelEdit && (
+        <TouchableOpacity onPress={cancelEdit} style={styles.cancelButton}>
+          <Text style={styles.cancelText}>Cancel Edit</Text>
+        </TouchableOpacity>
+      )}
+    </ScrollView>
+  );
 };
 
 export default ProductForm;
-
-const styles = StyleSheet.create({
-    container: {
-        backgroundColor: "#1f1f1f",
-        borderRadius: 12,
-        padding: 20,
-        marginBottom: 20,
-    },
-    title: {
-        color: "#ffffff",
-        fontSize: 18,
-        fontWeight: "bold",
-        marginBottom: 16,
-    },
-    inputWrapper: {
-        marginBottom: 12,
-    },
-    label: {
-        color: "#D1D5DB", // gray-300
-        fontSize: 14,
-        fontWeight: "500",
-        marginBottom: 4,
-    },
-    input: {
-        backgroundColor: "#27272a",
-        color: "#ffffff",
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: "#10B981",
-    },
-    description: {
-        height: 80,
-        textAlignVertical: "top",
-    },
-    submitButton: {
-        backgroundColor: "#10B981",
-        paddingVertical: 12,
-        borderRadius: 8,
-        alignItems: "center",
-        marginTop: 12,
-    },
-    submitButtonText: {
-        color: "#ffffff",
-        fontWeight: "bold",
-        fontSize: 16,
-    },
-    cancelButton: {
-        marginTop: 12,
-        alignItems: "center",
-    },
-    cancelText: {
-        color: "#f87171",
-        fontSize: 14,
-    },
-});

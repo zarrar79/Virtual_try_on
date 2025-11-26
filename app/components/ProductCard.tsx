@@ -1,15 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   Image,
   TouchableOpacity,
-  StyleSheet,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useCart } from "../context/CartContext";
 import { useApi } from "../context/ApiContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import styles from "../CSS/ProductCard.styles";
 
 interface ProductCardProps {
   product: any;
@@ -19,6 +20,35 @@ export default function ProductCard({ product }: ProductCardProps) {
   const BASE_URL = useApi();
   const { addToCart } = useCart();
   const [loadingWishlist, setLoadingWishlist] = useState(false);
+  const [avgRating, setAvgRating] = useState<number | null>(null);
+  const [reviewCount, setReviewCount] = useState<number>(0);
+  const [loadingReviews, setLoadingReviews] = useState(true);
+
+  useEffect(() => {
+    fetchReviews();
+  }, []);
+
+  const fetchReviews = async () => {
+    try {
+      setLoadingReviews(true);
+      const response = await fetch(`${BASE_URL}/review/product/${product._id}`);
+      if (!response.ok) throw new Error("Failed to fetch reviews");
+      const data = await response.json();
+
+      if (data.length > 0) {
+        const totalRating = data.reduce((acc: number, r: any) => acc + r.rating, 0);
+        setAvgRating(Number((totalRating / data.length).toFixed(1)));
+        setReviewCount(data.length);
+      } else {
+        setAvgRating(null);
+        setReviewCount(0);
+      }
+    } catch (err) {
+      console.error("Error fetching reviews:", err);
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
 
   const handleAddToCart = () => {
     addToCart(product);
@@ -34,24 +64,17 @@ export default function ProductCard({ product }: ProductCardProps) {
         Alert.alert("Login Required", "Please login to add items to wishlist.");
         return;
       }
+
       const response = await fetch(`${BASE_URL}/wishlist/add`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: userId.replace(/"/g, ""),
           productId: product._id,
         }),
       });
 
-
-      if (!response.ok) {
-        console.log(response, '----response');
-
-        throw new Error("Failed to add to wishlist");
-      }
-
+      if (!response.ok) throw new Error("Failed to add to wishlist");
       Alert.alert("Wishlist", `${product.name} added to wishlist!`);
     } catch (err) {
       console.error("Wishlist Error:", err);
@@ -61,12 +84,11 @@ export default function ProductCard({ product }: ProductCardProps) {
     }
   };
 
-
   return (
     <View style={styles.productCard}>
-      {product.imageUrl && (
+      {product.designs && (
         <Image
-          source={{ uri: `${BASE_URL}${product.imageUrl}` }}
+          source={{ uri: `${BASE_URL}${product.designs[0].imageUrl}` }}
           style={styles.productImage}
           resizeMode="cover"
         />
@@ -78,6 +100,17 @@ export default function ProductCard({ product }: ProductCardProps) {
           <Text style={styles.productDescription}>
             {product.description}
           </Text>
+        )}
+
+        {/* Rating Section */}
+        {loadingReviews ? (
+          <ActivityIndicator size="small" color="#000" />
+        ) : avgRating ? (
+          <Text style={styles.productRating}>
+            ⭐ {avgRating} ({reviewCount} reviews)
+          </Text>
+        ) : (
+          <Text style={styles.productRating}>No reviews yet</Text>
         )}
 
         {/* Add to Cart Button */}
@@ -102,67 +135,3 @@ export default function ProductCard({ product }: ProductCardProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  productCard: {
-    backgroundColor: "white",
-    borderRadius: 8,
-    marginBottom: 12,
-    flexDirection: "row",
-    overflow: "hidden",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-  },
-  productImage: {
-    width: 120,
-    height: 120,
-  },
-  productInfo: {
-    flex: 1,
-    padding: 12,
-  },
-  productName: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
-  productPrice: {
-    fontSize: 16,
-    color: "#db3022",
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
-  productDescription: {
-    fontSize: 14,
-    color: "#666",
-  },
-  addToCartBtn: {
-    backgroundColor: "#007bff",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginTop: 10,
-    alignItems: "center",
-  },
-  addToCartText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-  addToWishlistBtn: {
-    backgroundColor: "#db3022",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginTop: 10,
-    alignItems: "center",
-  },
-  addToWishlistText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-});

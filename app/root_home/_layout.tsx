@@ -14,6 +14,8 @@ export default function DrawerLayout() {
                 style: 'destructive',
                 onPress: async () => {
                     await AsyncStorage.removeItem('token');
+                    await AsyncStorage.removeItem('user');
+                    await AsyncStorage.removeItem('user_name');
                     router.replace('/login');
                 },
             },
@@ -24,7 +26,8 @@ export default function DrawerLayout() {
         <Drawer
             screenOptions={{
                 headerStyle: {
-                    backgroundColor: "#db3022",
+                    // backgroundColor: "#8A9A5B",
+                    backgroundColor: "#808000",
 
                 },
                 headerTintColor: "#ffff",
@@ -39,7 +42,9 @@ export default function DrawerLayout() {
                         style={{ marginRight: 15 }}
                         onPress={handleLogout}
                     />
-                )
+                ),
+                drawerActiveTintColor: '#808000',  // Color for active/focused drawer item
+                drawerInactiveTintColor: '#555',
             }}
         >
             <Drawer.Screen
@@ -82,6 +87,17 @@ export default function DrawerLayout() {
                     ),
                 }}
             />
+            <Drawer.Screen
+                name="ProductCustomization"
+                options={{
+                    drawerLabel: 'Product Customization',
+                    title: 'Product Customization',
+                    drawerIcon: ({ focused, color, size }) => (
+                        <Ionicons name={focused ? 'create' : 'create'} size={size} color={color} />
+                    ),
+                }}
+            />
+
 
         </Drawer>
     );
