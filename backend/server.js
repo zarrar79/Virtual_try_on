@@ -39,7 +39,7 @@ app.post(
       event = stripe.webhooks.constructEvent(
         req.body,
         sig,
-        'whsec_d9c6070523b2506347cd4e8f5105d2bd65834ce2e7610ed263adec56024701a9'
+        'whsec_a42ff260a197aecaf99b2257138b01c662d0e7c1a22219dcce482a573804b315'
       );
     } catch (err) {
       console.error("❌ Webhook signature verification failed:", err.message);
@@ -90,7 +90,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use("/backend/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(express.urlencoded({ extended: true }));
 
-const BASE_IP_ADD = "192.168.1.11";
+const BASE_IP_ADD = "10.85.165.205";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -100,6 +100,7 @@ mongoose
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.log("MongoDB connection error:", err));
 
+
 // ========================= Multer Setup ========================= //
 
 const upload = multer({ dest: "uploads/" });
@@ -108,6 +109,7 @@ const hf = new InferenceClient(process.env.HF_TOKEN);
 // ========================= User Routes ========================= //
 app.post("/user/signup", async (req, res) => {
   try {
+    // Desctructor
     const { name, email, password } = req.body;
     const existingUser = await User.findOne({ email });
     if (existingUser)
