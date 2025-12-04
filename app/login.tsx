@@ -3,7 +3,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
   Text,
-  StyleSheet,
   ImageBackground,
   SafeAreaView,
   Pressable,
@@ -13,6 +12,7 @@ import {
   ScrollView,
   Alert,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import styles from './CSS/Login.styles';
 import { StatusBar } from 'expo-status-bar';
@@ -21,28 +21,50 @@ import { useApi } from './context/ApiContext';
 
 export default function Login() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const BASE_URL = useApi();
 
-  // 🔹 Forgot Password modal state
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false); // 🔹 loader state
+
+  // Forgot Password modal state
   const [forgotVisible, setForgotVisible] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
+
+  // ✅ Email validation function
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email.trim());
+  };
 
   useEffect(() => {
     (async () => {
       if (await AsyncStorage.getItem('token')) {
         router.replace('/root_home/home');
-        return;
-
       }
-    })()
-  }, [router])
+    })();
+  }, [router]);
+
+  // 🔹 Validate email when moving to password field
+  const handleEmailBlur = () => {
+    if (email && !isValidEmail(email)) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address');
+    }
+  };
+
+  // 🔹 Login handler with loader and validation
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       Alert.alert('Error', 'Please fill in both email and password fields');
       return;
     }
+
+    if (!isValidEmail(email)) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address');
+      return;
+    }
+
+    setLoading(true); // 🔹 show loader
 
     try {
       const response = await fetch(`${BASE_URL}/user/login`, {
@@ -53,27 +75,32 @@ export default function Login() {
 
       const data = await response.json();
 
+      setLoading(false); // 🔹 hide loader
+
       if (response.ok && data.success) {
         await AsyncStorage.setItem('token', data.token);
         await AsyncStorage.setItem('user', data.user._id);
-        console.log(data.user._id,'--->user id');
-        
         await AsyncStorage.setItem('user_name', data.user.name);
-
         router.replace('/root_home/home');
       } else {
         Alert.alert('Login Failed', data.message || 'Invalid credentials');
       }
     } catch (error) {
+      setLoading(false); // 🔹 hide loader on error
       console.error('Login error:', error);
       Alert.alert('Error', 'Network error or server not reachable');
     }
   };
 
-  // 🔹 Handle Forgot Password API call
+  // 🔹 Forgot Password handler with validation
   const handleForgotPassword = async () => {
     if (!forgotEmail.trim()) {
       Alert.alert('Error', 'Please enter your email');
+      return;
+    }
+
+    if (!isValidEmail(forgotEmail)) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address');
       return;
     }
 
@@ -130,6 +157,7 @@ export default function Login() {
                   style={styles.input}
                   value={email}
                   onChangeText={setEmail}
+                  onBlur={handleEmailBlur} // 🔹 validate on blur
                 />
               </View>
 
@@ -151,17 +179,22 @@ export default function Login() {
                   pressed ? styles.whiteButton : styles.redButton,
                 ]}
                 onPress={handleLogin}
+                disabled={loading} // 🔹 disable button while loading
               >
-                {({ pressed }) => (
-                  <Text
-                    style={[
-                      styles.buttonText,
-                      pressed ? styles.redText : styles.whiteText,
-                    ]}
-                  >
-                    Login
-                  </Text>
-                )}
+                {({ pressed }) =>
+                  loading ? (
+                    <ActivityIndicator color="#fff" /> // 🔹 loader
+                  ) : (
+                    <Text
+                      style={[
+                        styles.buttonText,
+                        pressed ? styles.redText : styles.whiteText,
+                      ]}
+                    >
+                      Login
+                    </Text>
+                  )
+                }
               </Pressable>
 
               {/* 🔹 Forgot Password Button */}
@@ -193,10 +226,16 @@ export default function Login() {
               onChangeText={setForgotEmail}
             />
             <View style={{ flexDirection: 'row', marginTop: 15 }}>
-              <Pressable style={[styles.button, styles.redButton, { flex: 1, marginRight: 5 }]} onPress={handleForgotPassword}>
+              <Pressable
+                style={[styles.button, styles.redButton, { flex: 1, marginRight: 5 }]}
+                onPress={handleForgotPassword}
+              >
                 <Text style={[styles.buttonText, styles.whiteText]}>Submit</Text>
               </Pressable>
-              <Pressable style={[styles.button, styles.whiteButton, { flex: 1, marginLeft: 5 }]} onPress={() => setForgotVisible(false)}>
+              <Pressable
+                style={[styles.button, styles.whiteButton, { flex: 1, marginLeft: 5 }]}
+                onPress={() => setForgotVisible(false)}
+              >
                 <Text style={[styles.buttonText, styles.redText]}>Cancel</Text>
               </Pressable>
             </View>

@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -14,6 +13,8 @@ import {
   Text,
   TextInput,
   View,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useApi } from './context/ApiContext';
 import styles from './CSS/Signup.styles';
@@ -23,54 +24,73 @@ export default function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false); // 🔹 loader state
   const router = useRouter();
-
   const BASE_URL = useApi();
 
-  useEffect(()=>{
-( async()=>{     if (await AsyncStorage.getItem('token'))
-    
-      {
-        router.replace('/root_home/home');
-      return;
+  // ✅ Email validation function
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email.trim());
+  };
 
-      }})()
-  },[router])
+  // 🔹 Validate email when moving away from email field
+  const handleEmailBlur = () => {
+    if (email && !isValidEmail(email)) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address');
+    }
+  };
+
+  useEffect(() => {
+    (async () => {
+      if (await AsyncStorage.getItem('token')) {
+        router.replace('/root_home/home');
+      }
+    })();
+  }, [router]);
 
   async function signUp(data: any) {
     const { name, email, password, confirmPassword } = data;
-  
+
+    // 🔹 Field validation
     if (!name || !email || !password || !confirmPassword) {
-      alert('Please fill in all fields');
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address');
       return;
     }
 
     if (password !== confirmPassword) {
-      alert('Passwords do not match');
+      Alert.alert('Error', 'Passwords do not match');
       return;
     }
 
-    fetch(`${BASE_URL}/user/signup`,{
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ name, email, password })
-    })
-      .then(async response => {
-        const resData = await response.json();
-        if (response.status === 200 || response.status === 201) {
-          alert('User added successfully!');
-          console.log(resData);
-        } else {
-          alert('Signup failed: ' + (resData.error || resData.message));
-        }
-      })
-      .catch(error => {
-        alert('Network error: ' + error.message);
-      });
-  }
+    setLoading(true); // 🔹 show loader
 
+    try {
+      const response = await fetch(`${BASE_URL}/user/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const resData = await response.json();
+      setLoading(false); // 🔹 hide loader
+
+      if (response.status === 200 || response.status === 201) {
+        Alert.alert('Success', 'User added successfully!');
+        router.push('/login'); // redirect to login
+      } else {
+        Alert.alert('Signup Failed', resData.error || resData.message || 'Unable to signup');
+      }
+    } catch (error: any) {
+      setLoading(false); // 🔹 hide loader on error
+      Alert.alert('Network Error', error.message || 'Something went wrong');
+    }
+  }
 
   return (
     <ImageBackground
@@ -79,6 +99,7 @@ export default function Signup() {
       resizeMode="cover"
     >
       <StatusBar style="light" translucent backgroundColor="transparent" />
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -113,6 +134,7 @@ export default function Signup() {
                   autoCapitalize="none"
                   value={email}
                   onChangeText={setEmail}
+                  onBlur={handleEmailBlur} // 🔹 validate on blur
                 />
               </View>
 
@@ -146,17 +168,22 @@ export default function Signup() {
                   pressed ? styles.whiteButton : styles.redButton,
                 ]}
                 onPress={() => signUp({ name, email, password, confirmPassword })}
+                disabled={loading} // 🔹 disable button while loading
               >
-                {({ pressed }) => (
-                  <Text
-                    style={[
-                      styles.buttonText,
-                      pressed ? styles.redText : styles.whiteText,
-                    ]}
-                  >
-                    Signup
-                  </Text>
-                )}
+                {({ pressed }) =>
+                  loading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text
+                      style={[
+                        styles.buttonText,
+                        pressed ? styles.redText : styles.whiteText,
+                      ]}
+                    >
+                      Signup
+                    </Text>
+                  )
+                }
               </Pressable>
 
               <Pressable onPress={() => router.push('/login')}>
