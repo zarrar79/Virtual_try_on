@@ -522,8 +522,6 @@ tryOnIconContainer: {
     lineHeight: 22,
   },
   tryOnPreviewImage: {
-    width: 200,
-    height: 200,
     borderRadius: 12,
     marginVertical: 16,
     borderWidth: 2,

@@ -15,6 +15,19 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useApi } from "../context/ApiContext";
 
+type Design = {
+  imageUrls: string[];
+};
+
+type CartItem = {
+  _id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  designs: Design[];
+};
+
+
 export default function CartScreen() {
   const BASE_URL = useApi();
   const { cart, removeFromCart, setCart } = useCart();
@@ -150,9 +163,13 @@ export default function CartScreen() {
             renderItem={({ item }) => (
               <View style={styles.cartCard}>
                 <Image
-                  source={{ uri: `${BASE_URL}${item.imageUrl}` }}
+                  source={{
+                    uri: `${BASE_URL}${item.designs[0]?.imageUrl
+                      }`
+                  }}
                   style={styles.cartImage}
                 />
+
                 <View style={styles.cartDetails}>
                   <Text style={styles.cartName}>{item.name}</Text>
                   <Text style={styles.cartPrice}>Rs.{item.price}.00</Text>
