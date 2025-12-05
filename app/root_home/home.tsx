@@ -1,20 +1,20 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { useNavigation } from "@react-navigation/native";
-import { 
-  View, 
-  SafeAreaView, 
-  FlatList, 
-  Alert, 
-  BackHandler, 
-  TouchableOpacity, 
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Alert,
+  BackHandler,
+  FlatList,
+  SafeAreaView,
+  ScrollView,
   Text,
-  ScrollView 
+  TouchableOpacity,
+  View
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+
+import ReviewPopup from '@/components/ReviewPopup';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ProductCard from '../components/ProductCard';
 import { useApi } from '../context/ApiContext';
-import ReviewPopup from '@/components/ReviewPopup';
 import styles from '../CSS/Home.styles';
 
 type GenderFilter = 'all' | 'male' | 'female';

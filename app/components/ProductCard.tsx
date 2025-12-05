@@ -88,7 +88,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     <View style={styles.productCard}>
       {product.designs && (
         <Image
-          source={{ uri: `${BASE_URL}${product.designs[0].imageUrl}` }}
+          source={{ uri: `${BASE_URL}${product.designs[0]?.imageUrl}` }}
           style={styles.productImage}
           resizeMode="cover"
         />

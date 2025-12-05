@@ -3,7 +3,6 @@ import '../global.css';
 import { CartProvider } from './context/CartContext';
 import useStripeRedirect from './hooks/useStripeRedirect';
 import { ApiProvider } from './context/ApiContext';
-import ProductCustomization from './root_home/ProductCustomization';
 
 export default function RootLayout() {
   useStripeRedirect();

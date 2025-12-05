@@ -87,18 +87,6 @@ export default function DrawerLayout() {
                     ),
                 }}
             />
-            <Drawer.Screen
-                name="ProductCustomization"
-                options={{
-                    drawerLabel: 'Product Customization',
-                    title: 'Product Customization',
-                    drawerIcon: ({ focused, color, size }) => (
-                        <Ionicons name={focused ? 'create' : 'create'} size={size} color={color} />
-                    ),
-                }}
-            />
-
-
         </Drawer>
     );
 }
