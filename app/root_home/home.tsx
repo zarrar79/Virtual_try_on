@@ -29,7 +29,7 @@ const useGenderFilter = (products: any[]) => {
 
   const filterProductsByGender = useCallback((productsList: any[], gender: GenderFilter) => {
     if (gender === 'all') return productsList;
-    
+
     const genderKeywords = {
       male: ['male', 'men', 'man', 'boy'],
       female: ['female', 'women', 'woman', 'girl']
@@ -42,11 +42,15 @@ const useGenderFilter = (products: any[]) => {
         product.description?.toLowerCase()
       ].join(' ');
 
-      return genderKeywords[gender].some(keyword => searchText.includes(keyword));
+      return genderKeywords[gender].some(keyword => {
+        // Use EXACT word matching with word boundaries
+        const regex = new RegExp(`\\b${keyword}\\b`, 'i'); 
+        return regex.test(searchText);
+      });
     });
   }, []);
 
-  const filteredProducts = useMemo(() => 
+  const filteredProducts = useMemo(() =>
     filterProductsByGender(products, selectedGender),
     [products, selectedGender, filterProductsByGender]
   );
@@ -54,7 +58,7 @@ const useGenderFilter = (products: any[]) => {
   return {
     selectedGender,
     setSelectedGender,
-    filteredProducts
+    filteredProducts,
   };
 };
 

@@ -12,12 +12,17 @@ import {
     StyleSheet,
 } from "react-native";
 
+type Design = {
+    imageUrls: string[];
+};
+
 type Product = {
     _id: string;
     name: string;
     price: number;
-    imageUrl: string;
+    designs: Design[];
 };
+
 
 export default function Wishlist() {
     const BASE_URL = useApi();
@@ -97,7 +102,7 @@ export default function Wishlist() {
                     renderItem={({ item }) => (
                         <View style={styles.card}>
                             <Image
-                                source={{ uri: `${BASE_URL}${item.imageUrl}` }}
+                                source={{ uri: `${BASE_URL}${item.designs[0].imageUrl}` }}
                                 style={styles.image}
                             />
                             <Text style={styles.name}>{item.name}</Text>
