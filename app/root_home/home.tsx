@@ -1,365 +1,701 @@
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+// import { useFocusEffect, useNavigation } from "@react-navigation/native";
+// import React, { useCallback, useEffect, useMemo, useState } from 'react';
+// import {
+//   Alert,
+//   BackHandler,
+//   FlatList,
+//   SafeAreaView,
+//   ScrollView,
+//   Text,
+//   TouchableOpacity,
+//   View
+// } from 'react-native';
+
+// import ReviewPopup from '@/components/ReviewPopup';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// import ProductCard from '../components/ProductCard';
+// import { useApi } from '../context/ApiContext';
+// import styles from '../CSS/Home.styles';
+
+// type GenderFilter = 'all' | 'male' | 'female';
+// interface ReviewProduct {
+//   productId: string;
+//   orderId: string;
+// }
+
+// // Custom hook for gender filtering
+// const useGenderFilter = (products: any[]) => {
+//   const [selectedGender, setSelectedGender] = useState<GenderFilter>('all');
+
+//   const filterProductsByGender = useCallback((productsList: any[], gender: GenderFilter) => {
+//     if (gender === 'all') return productsList;
+
+//     const genderKeywords = {
+//       male: ['male', 'men', 'man', 'boy'],
+//       female: ['female', 'women', 'woman', 'girl']
+//     };
+
+//     return productsList.filter(product => {
+//       const searchText = [
+//         product.name?.toLowerCase(),
+//         product.category?.toLowerCase(),
+//         product.description?.toLowerCase()
+//       ].join(' ');
+
+//       return genderKeywords[gender].some(keyword => {
+//         // Use EXACT word matching with word boundaries
+//         const regex = new RegExp(`\\b${keyword}\\b`, 'i'); 
+//         return regex.test(searchText);
+//       });
+//     });
+//   }, []);
+
+//   const filteredProducts = useMemo(() =>
+//     filterProductsByGender(products, selectedGender),
+//     [products, selectedGender, filterProductsByGender]
+//   );
+
+//   return {
+//     selectedGender,
+//     setSelectedGender,
+//     filteredProducts,
+//   };
+// };
+
+// // Custom hook for reviews management
+// const useReviews = (userId: string, BASE_URL: string) => {
+//   const [reviewProduct, setReviewProduct] = useState<ReviewProduct | null>(null);
+//   const [dismissedReviews, setDismissedReviews] = useState<string[]>([]);
+
+//   const loadDismissedReviews = useCallback(async () => {
+//     try {
+//       const dismissedRaw = await AsyncStorage.getItem('dismissedReviews');
+//       const dismissed = dismissedRaw ? JSON.parse(dismissedRaw) : [];
+//       setDismissedReviews(dismissed);
+//     } catch (error) {
+//       console.error('Error loading dismissed reviews:', error);
+//     }
+//   }, []);
+
+//   const checkForReviews = useCallback(async () => {
+//     if (!userId) return;
+
+//     try {
+//       const ordersRes = await fetch(`${BASE_URL}/orders/${userId}`);
+//       const orders = await ordersRes.json();
+
+//       for (const order of orders) {
+//         if (order.status === 'delivered' || order.status === 'shipped') {
+//           for (const item of order.items) {
+//             if (dismissedReviews.includes(item.productId)) continue;
+
+//             const checkRes = await fetch(
+//               `${BASE_URL}/review/check/${order._id}/${item.productId}/${userId}`
+//             );
+//             const checkData = await checkRes.json();
+
+//             if (!checkData.reviewed) {
+//               setReviewProduct({ productId: item.productId, orderId: order._id });
+//               return;
+//             }
+//           }
+//         }
+//       }
+//       setReviewProduct(null);
+//     } catch (err) {
+//       console.error('Error checking reviews:', err);
+//     }
+//   }, [userId, dismissedReviews, BASE_URL]);
+
+//   const dismissReview = useCallback(async (productId: string) => {
+//     const updatedDismissed = [...dismissedReviews, productId];
+//     setDismissedReviews(updatedDismissed);
+//     await AsyncStorage.setItem('dismissedReviews', JSON.stringify(updatedDismissed));
+//     setReviewProduct(null);
+//   }, [dismissedReviews]);
+
+//   return {
+//     reviewProduct,
+//     dismissedReviews,
+//     loadDismissedReviews,
+//     checkForReviews,
+//     dismissReview
+//   };
+// };
+
+// // Custom hook for products data
+// const useProducts = (BASE_URL: string) => {
+//   const [products, setProducts] = useState<any[]>([]);
+//   const [loading, setLoading] = useState(false);
+
+//   const fetchProductsWithRatings = useCallback(async () => {
+//     try {
+//       setLoading(true);
+//       const res = await fetch(`${BASE_URL}/products`);
+//       const data = await res.json();
+
+//       const productsWithRatings = await Promise.all(
+//         data.map(async (product: any) => {
+//           try {
+//             const reviewRes = await fetch(`${BASE_URL}/review/product/${product._id}`);
+//             const reviews = await reviewRes.json();
+
+//             const avgRating = reviews.length > 0 
+//               ? parseFloat((reviews.reduce((acc: number, r: any) => acc + (r.rating || 0), 0) / reviews.length).toFixed(1))
+//               : 0;
+
+//             return { ...product, avgRating };
+//           } catch {
+//             return { ...product, avgRating: 0 };
+//           }
+//         })
+//       );
+
+//       setProducts(productsWithRatings);
+//     } catch (err) {
+//       console.error("Error fetching products:", err);
+//       Alert.alert("Error", "Failed to load products");
+//     } finally {
+//       setLoading(false);
+//     }
+//   }, [BASE_URL]);
+
+//   return {
+//     products,
+//     loading,
+//     fetchProductsWithRatings
+//   };
+// };
+
+// // Custom hook for user data
+// const useUser = () => {
+//   const [userId, setUserId] = useState('');
+
+//   const loadUserId = useCallback(async () => {
+//     try {
+//       const id = await AsyncStorage.getItem('user');
+//       if (id) setUserId(id);
+//     } catch (err) {
+//       console.error('Error loading user ID:', err);
+//     }
+//   }, []);
+
+//   return {
+//     userId,
+//     loadUserId
+//   };
+// };
+
+// // Gender Tabs Component
+// const GenderTabs = React.memo(({ 
+//   selectedGender, 
+//   onGenderSelect 
+// }: { 
+//   selectedGender: GenderFilter;
+//   onGenderSelect: (gender: GenderFilter) => void;
+// }) => (
+//   <ScrollView 
+//     horizontal 
+//     showsHorizontalScrollIndicator={false}
+//     style={styles.tabsContainer}
+//   >
+//     {(['all', 'male', 'female'] as GenderFilter[]).map(gender => (
+//       <TouchableOpacity
+//         key={gender}
+//         style={[
+//           styles.tab,
+//           selectedGender === gender && styles.tabActive
+//         ]}
+//         onPress={() => onGenderSelect(gender)}
+//       >
+//         <Text style={[
+//           styles.tabText,
+//           selectedGender === gender && styles.tabTextActive
+//         ]}>
+//           {gender === 'all' ? 'All Products' : gender.charAt(0).toUpperCase() + gender.slice(1)}
+//         </Text>
+//       </TouchableOpacity>
+//     ))}
+//   </ScrollView>
+// ));
+
+// // Results Counter Component
+// const ResultsCounter = React.memo(({ 
+//   count, 
+//   gender 
+// }: { 
+//   count: number; 
+//   gender: GenderFilter;
+// }) => (
+//   <View style={styles.resultsContainer}>
+//     <Text style={styles.resultsText}>
+//       {count} product{count !== 1 ? 's' : ''} 
+//       {gender !== 'all' && ` for ${gender}`}
+//     </Text>
+//   </View>
+// ));
+
+// // Empty State Component
+// const EmptyState = React.memo(({ gender }: { gender: GenderFilter }) => (
+//   <View style={styles.emptyContainer}>
+//     <Text style={styles.emptyText}>
+//       {gender === 'all' 
+//         ? 'No products available' 
+//         : `No ${gender} products found`
+//       }
+//     </Text>
+//   </View>
+// ));
+
+// export default function Home() {
+//   const navigation = useNavigation<any>();
+//   const BASE_URL = useApi();
+
+//   // Custom hooks
+//   const { userId, loadUserId } = useUser();
+//   const { products, fetchProductsWithRatings } = useProducts(BASE_URL);
+//   const { selectedGender, setSelectedGender, filteredProducts } = useGenderFilter(products);
+//   const { 
+//     reviewProduct, 
+//     loadDismissedReviews, 
+//     checkForReviews, 
+//     dismissReview 
+//   } = useReviews(userId, BASE_URL);
+
+//   // Load user data and reviews
+//   useFocusEffect(
+//     useCallback(() => {
+//       const initializeUserData = async () => {
+//         await loadUserId();
+//         await loadDismissedReviews();
+//       };
+//       initializeUserData();
+//     }, [loadUserId, loadDismissedReviews])
+//   );
+
+//   // Check for reviews when user or dismissed reviews change
+//   useEffect(() => {
+//     checkForReviews();
+//   }, [userId, checkForReviews]);
+
+//   // Fetch products on focus
+//   useFocusEffect(
+//     useCallback(() => {
+//       fetchProductsWithRatings();
+//     }, [fetchProductsWithRatings])
+//   );
+
+//   // Handle back button press
+//   useEffect(() => {
+//     const handleBackPress = () => {
+//       Alert.alert('Exit App', 'Do you want to exit the app?', [
+//         { text: 'Cancel', style: 'cancel' },
+//         { text: 'Exit', onPress: () => BackHandler.exitApp() },
+//       ]);
+//       return true;
+//     };
+
+//     const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
+//     return () => backHandler.remove();
+//   }, []);
+
+//   // Handle review popup close
+//   const handleReviewClose = useCallback(async () => {
+//     if (reviewProduct) {
+//       await dismissReview(reviewProduct.productId);
+//       setTimeout(() => checkForReviews(), 500);
+//     }
+//   }, [reviewProduct, dismissReview, checkForReviews]);
+
+//   // Get product name for review popup
+//   const reviewProductName = useMemo(() => 
+//     products.find(p => p._id === reviewProduct?.productId)?.name || 'Product',
+//     [products, reviewProduct]
+//   );
+
+//   // Render product item
+//   const renderProductItem = useCallback(({ item }: { item: any }) => (
+//     <TouchableOpacity
+//       onPress={() => navigation.navigate("ProductCustomization", { product: item })}
+//       activeOpacity={0.8}
+//     >
+//       <ProductCard product={item} />
+//     </TouchableOpacity>
+//   ), [navigation]);
+
+//   return (
+//     <SafeAreaView style={styles.container}>
+//       {/* Gender Filter Tabs */}
+//       <GenderTabs 
+//         selectedGender={selectedGender} 
+//         onGenderSelect={setSelectedGender} 
+//       />
+
+//       {/* Results Count */}
+//       <ResultsCounter 
+//         count={filteredProducts.length} 
+//         gender={selectedGender} 
+//       />
+
+//       {/* Products List */}
+//       <FlatList
+//         data={filteredProducts}
+//         keyExtractor={(item) => item._id}
+//         renderItem={renderProductItem}
+//         contentContainerStyle={styles.productList}
+//         ListEmptyComponent={<EmptyState gender={selectedGender} />}
+//         initialNumToRender={10}
+//         maxToRenderPerBatch={10}
+//         windowSize={5}
+//       />
+
+//       {/* Review Popup */}
+//       {reviewProduct && (
+//         <ReviewPopup
+//           visible={!!reviewProduct}
+//           productId={reviewProduct.productId}
+//           orderId={reviewProduct.orderId}
+//           userId={userId}
+//           productName={reviewProductName}
+//           onClose={handleReviewClose}
+//         />
+//       )}
+//     </SafeAreaView>
+//   );
+// }
+
+// Home.js
+// Home.js
+import React, { useRef, useState } from "react";
 import {
-  Alert,
-  BackHandler,
-  FlatList,
-  SafeAreaView,
-  ScrollView,
-  Text,
+  StyleSheet,
+  View,
+  Image,
+  Dimensions,
+  Platform,
   TouchableOpacity,
-  View
-} from 'react-native';
+  Text,
+  FlatList,
+} from "react-native";
+import {
+  GestureHandlerRootView,
+  PanGestureHandler,
+} from "react-native-gesture-handler";
+import ViewShot from "react-native-view-shot";
+import * as ImagePicker from "expo-image-picker";
+import MaskedView from "@react-native-masked-view/masked-view";
+import MovableDesign from "./MovableDesign";
 
-import ReviewPopup from '@/components/ReviewPopup';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import ProductCard from '../components/ProductCard';
-import { useApi } from '../context/ApiContext';
-import styles from '../CSS/Home.styles';
-
-type GenderFilter = 'all' | 'male' | 'female';
-interface ReviewProduct {
-  productId: string;
-  orderId: string;
-}
-
-// Custom hook for gender filtering
-const useGenderFilter = (products: any[]) => {
-  const [selectedGender, setSelectedGender] = useState<GenderFilter>('all');
-
-  const filterProductsByGender = useCallback((productsList: any[], gender: GenderFilter) => {
-    if (gender === 'all') return productsList;
-
-    const genderKeywords = {
-      male: ['male', 'men', 'man', 'boy'],
-      female: ['female', 'women', 'woman', 'girl']
-    };
-
-    return productsList.filter(product => {
-      const searchText = [
-        product.name?.toLowerCase(),
-        product.category?.toLowerCase(),
-        product.description?.toLowerCase()
-      ].join(' ');
-
-      return genderKeywords[gender].some(keyword => {
-        // Use EXACT word matching with word boundaries
-        const regex = new RegExp(`\\b${keyword}\\b`, 'i'); 
-        return regex.test(searchText);
-      });
-    });
-  }, []);
-
-  const filteredProducts = useMemo(() =>
-    filterProductsByGender(products, selectedGender),
-    [products, selectedGender, filterProductsByGender]
-  );
-
-  return {
-    selectedGender,
-    setSelectedGender,
-    filteredProducts,
-  };
-};
-
-// Custom hook for reviews management
-const useReviews = (userId: string, BASE_URL: string) => {
-  const [reviewProduct, setReviewProduct] = useState<ReviewProduct | null>(null);
-  const [dismissedReviews, setDismissedReviews] = useState<string[]>([]);
-
-  const loadDismissedReviews = useCallback(async () => {
-    try {
-      const dismissedRaw = await AsyncStorage.getItem('dismissedReviews');
-      const dismissed = dismissedRaw ? JSON.parse(dismissedRaw) : [];
-      setDismissedReviews(dismissed);
-    } catch (error) {
-      console.error('Error loading dismissed reviews:', error);
-    }
-  }, []);
-
-  const checkForReviews = useCallback(async () => {
-    if (!userId) return;
-
-    try {
-      const ordersRes = await fetch(`${BASE_URL}/orders/${userId}`);
-      const orders = await ordersRes.json();
-
-      for (const order of orders) {
-        if (order.status === 'delivered' || order.status === 'shipped') {
-          for (const item of order.items) {
-            if (dismissedReviews.includes(item.productId)) continue;
-
-            const checkRes = await fetch(
-              `${BASE_URL}/review/check/${order._id}/${item.productId}/${userId}`
-            );
-            const checkData = await checkRes.json();
-
-            if (!checkData.reviewed) {
-              setReviewProduct({ productId: item.productId, orderId: order._id });
-              return;
-            }
-          }
-        }
-      }
-      setReviewProduct(null);
-    } catch (err) {
-      console.error('Error checking reviews:', err);
-    }
-  }, [userId, dismissedReviews, BASE_URL]);
-
-  const dismissReview = useCallback(async (productId: string) => {
-    const updatedDismissed = [...dismissedReviews, productId];
-    setDismissedReviews(updatedDismissed);
-    await AsyncStorage.setItem('dismissedReviews', JSON.stringify(updatedDismissed));
-    setReviewProduct(null);
-  }, [dismissedReviews]);
-
-  return {
-    reviewProduct,
-    dismissedReviews,
-    loadDismissedReviews,
-    checkForReviews,
-    dismissReview
-  };
-};
-
-// Custom hook for products data
-const useProducts = (BASE_URL: string) => {
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  const fetchProductsWithRatings = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await fetch(`${BASE_URL}/products`);
-      const data = await res.json();
-
-      const productsWithRatings = await Promise.all(
-        data.map(async (product: any) => {
-          try {
-            const reviewRes = await fetch(`${BASE_URL}/review/product/${product._id}`);
-            const reviews = await reviewRes.json();
-
-            const avgRating = reviews.length > 0 
-              ? parseFloat((reviews.reduce((acc: number, r: any) => acc + (r.rating || 0), 0) / reviews.length).toFixed(1))
-              : 0;
-
-            return { ...product, avgRating };
-          } catch {
-            return { ...product, avgRating: 0 };
-          }
-        })
-      );
-
-      setProducts(productsWithRatings);
-    } catch (err) {
-      console.error("Error fetching products:", err);
-      Alert.alert("Error", "Failed to load products");
-    } finally {
-      setLoading(false);
-    }
-  }, [BASE_URL]);
-
-  return {
-    products,
-    loading,
-    fetchProductsWithRatings
-  };
-};
-
-// Custom hook for user data
-const useUser = () => {
-  const [userId, setUserId] = useState('');
-
-  const loadUserId = useCallback(async () => {
-    try {
-      const id = await AsyncStorage.getItem('user');
-      if (id) setUserId(id);
-    } catch (err) {
-      console.error('Error loading user ID:', err);
-    }
-  }, []);
-
-  return {
-    userId,
-    loadUserId
-  };
-};
-
-// Gender Tabs Component
-const GenderTabs = React.memo(({ 
-  selectedGender, 
-  onGenderSelect 
-}: { 
-  selectedGender: GenderFilter;
-  onGenderSelect: (gender: GenderFilter) => void;
-}) => (
-  <ScrollView 
-    horizontal 
-    showsHorizontalScrollIndicator={false}
-    style={styles.tabsContainer}
-  >
-    {(['all', 'male', 'female'] as GenderFilter[]).map(gender => (
-      <TouchableOpacity
-        key={gender}
-        style={[
-          styles.tab,
-          selectedGender === gender && styles.tabActive
-        ]}
-        onPress={() => onGenderSelect(gender)}
-      >
-        <Text style={[
-          styles.tabText,
-          selectedGender === gender && styles.tabTextActive
-        ]}>
-          {gender === 'all' ? 'All Products' : gender.charAt(0).toUpperCase() + gender.slice(1)}
-        </Text>
-      </TouchableOpacity>
-    ))}
-  </ScrollView>
-));
-
-// Results Counter Component
-const ResultsCounter = React.memo(({ 
-  count, 
-  gender 
-}: { 
-  count: number; 
-  gender: GenderFilter;
-}) => (
-  <View style={styles.resultsContainer}>
-    <Text style={styles.resultsText}>
-      {count} product{count !== 1 ? 's' : ''} 
-      {gender !== 'all' && ` for ${gender}`}
-    </Text>
-  </View>
-));
-
-// Empty State Component
-const EmptyState = React.memo(({ gender }: { gender: GenderFilter }) => (
-  <View style={styles.emptyContainer}>
-    <Text style={styles.emptyText}>
-      {gender === 'all' 
-        ? 'No products available' 
-        : `No ${gender} products found`
-      }
-    </Text>
-  </View>
-));
+const { width: SCREEN_W } = Dimensions.get("window");
 
 export default function Home() {
-  const navigation = useNavigation<any>();
-  const BASE_URL = useApi();
+  const viewShotRef = useRef();
 
-  // Custom hooks
-  const { userId, loadUserId } = useUser();
-  const { products, fetchProductsWithRatings } = useProducts(BASE_URL);
-  const { selectedGender, setSelectedGender, filteredProducts } = useGenderFilter(products);
-  const { 
-    reviewProduct, 
-    loadDismissedReviews, 
-    checkForReviews, 
-    dismissReview 
-  } = useReviews(userId, BASE_URL);
+  const canvasW = SCREEN_W - 40;
+  const canvasH = SCREEN_W - 40;
 
-  // Load user data and reviews
-  useFocusEffect(
-    useCallback(() => {
-      const initializeUserData = async () => {
-        await loadUserId();
-        await loadDismissedReviews();
-      };
-      initializeUserData();
-    }, [loadUserId, loadDismissedReviews])
-  );
+  // ----------------- Fabrics -----------------
+  const [topFabricUri, setTopFabricUri] = useState(null);
+  const [bottomFabricUri, setBottomFabricUri] = useState(null);
+  const [selectedPart, setSelectedPart] = useState("top");
 
-  // Check for reviews when user or dismissed reviews change
-  useEffect(() => {
-    checkForReviews();
-  }, [userId, checkForReviews]);
+  // ----------------- Designs -----------------
+  const [topPlaced, setTopPlaced] = useState([]);
+  const [bottomPlaced, setBottomPlaced] = useState([]);
+  const [selectedId, setSelectedId] = useState(null);
 
-  // Fetch products on focus
-  useFocusEffect(
-    useCallback(() => {
-      fetchProductsWithRatings();
-    }, [fetchProductsWithRatings])
-  );
+  const [designs] = useState([
+    { id: "d1", uri: "https://i.imgur.com/3n9bG2V.png", name: "Star" },
+    { id: "d2", uri: "https://i.imgur.com/2yaf2wb.png", name: "Flower" },
+  ]);
 
-  // Handle back button press
-  useEffect(() => {
-    const handleBackPress = () => {
-      Alert.alert('Exit App', 'Do you want to exit the app?', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Exit', onPress: () => BackHandler.exitApp() },
-      ]);
-      return true;
+  // ----------------- Mask positions & scales -----------------
+  const [topMaskPos, setTopMaskPos] = useState({ x: 0, y: 0 });
+  const [topMaskScale, setTopMaskScale] = useState(1);
+
+  const [bottomMaskPos, setBottomMaskPos] = useState({ x: 0, y: 0 });
+  const [bottomMaskScale, setBottomMaskScale] = useState(1);
+
+  // ----------------- Pick Fabric -----------------
+  const pickFabric = async () => {
+    const res = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!res.granted) return alert("Permission required");
+
+    const r = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.9,
+    });
+
+    if (!r.canceled && r.assets && r.assets.length > 0) {
+      if (selectedPart === "top") setTopFabricUri(r.assets[0].uri);
+      else setBottomFabricUri(r.assets[0].uri);
+    }
+  };
+
+  // ----------------- Add design -----------------
+  const addDesign = (design) => {
+    const instance = {
+      id: `${design.id}_${Date.now()}`,
+      designUri: design.uri,
+      x: canvasW / 4,
+      y: canvasH / 4,
+      scale: 1,
+      rotation: 0,
+    };
+    if (selectedPart === "top") setTopPlaced((p) => [...p, instance]);
+    else setBottomPlaced((p) => [...p, instance]);
+    setSelectedId(instance.id);
+  };
+
+  // ----------------- Draggable Mask Component -----------------
+  const DraggableMask = ({
+    maskSource,
+    fabricUri,
+    pos,
+    setPos,
+    scale,
+    designsArray,
+    setDesignsArray,
+  }) => {
+    const offset = useRef({ x: pos.x, y: pos.y }).current;
+
+    const onGestureEvent = (e) => {
+      setPos({
+        x: offset.x + e.nativeEvent.translationX,
+        y: offset.y + e.nativeEvent.translationY,
+      });
     };
 
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
-    return () => backHandler.remove();
-  }, []);
+    const onHandlerStateChange = (e) => {
+      if (e.nativeEvent.state === 5) {
+        offset.x = pos.x;
+        offset.y = pos.y;
+      }
+    };
 
-  // Handle review popup close
-  const handleReviewClose = useCallback(async () => {
-    if (reviewProduct) {
-      await dismissReview(reviewProduct.productId);
-      setTimeout(() => checkForReviews(), 500);
-    }
-  }, [reviewProduct, dismissReview, checkForReviews]);
+    return (
+      <PanGestureHandler
+        onGestureEvent={onGestureEvent}
+        onHandlerStateChange={onHandlerStateChange}
+      >
+        <View
+          style={{
+            position: "absolute",
+            left: pos.x,
+            top: pos.y,
+            width: canvasW * scale,
+            height: canvasH * scale,
+          }}
+        >
+          <MaskedView
+            style={{ flex: 1 }}
+            maskElement={
+              <Image
+                source={maskSource}
+                style={{ width: "100%", height: "100%" }}
+                resizeMode="contain"
+              />
+            }
+          >
+            <Image
+              source={{ uri: fabricUri || "https://i.imgur.com/6KQ2c0n.jpg" }}
+              style={{ width: "100%", height: "100%" }}
+              resizeMode="cover"
+            />
 
-  // Get product name for review popup
-  const reviewProductName = useMemo(() => 
-    products.find(p => p._id === reviewProduct?.productId)?.name || 'Product',
-    [products, reviewProduct]
+            {designsArray.map((it) => (
+              <MovableDesign
+                key={it.id}
+                item={it}
+                selected={selectedId === it.id}
+                canvasSize={{ width: canvasW, height: canvasH }}
+                onUpdate={(changes) =>
+                  setDesignsArray((prev) =>
+                    prev.map((d) => (d.id === it.id ? { ...d, ...changes } : d))
+                  )
+                }
+                onDelete={() =>
+                  setDesignsArray((prev) => prev.filter((d) => d.id !== it.id))
+                }
+                onSelect={() => setSelectedId(it.id)}
+              />
+            ))}
+          </MaskedView>
+        </View>
+      </PanGestureHandler>
+    );
+  };
+
+  // ----------------- Resize Buttons -----------------
+  const renderResizeButtons = () => (
+    <View style={styles.resizeButtons}>
+      <TouchableOpacity
+        onPress={() => {
+          if (selectedPart === "top") setTopMaskScale(topMaskScale + 0.1);
+          else setBottomMaskScale(bottomMaskScale + 0.1);
+        }}
+        style={styles.resizeBtn}
+      >
+        <Text style={{ fontSize: 20 }}>+</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() => {
+          if (selectedPart === "top")
+            setTopMaskScale(Math.max(0.1, topMaskScale - 0.1));
+          else
+            setBottomMaskScale(Math.max(0.1, bottomMaskScale - 0.1));
+        }}
+        style={styles.resizeBtn}
+      >
+        <Text style={{ fontSize: 20 }}>-</Text>
+      </TouchableOpacity>
+    </View>
   );
-
-  // Render product item
-  const renderProductItem = useCallback(({ item }: { item: any }) => (
-    <TouchableOpacity
-      onPress={() => navigation.navigate("ProductCustomization", { product: item })}
-      activeOpacity={0.8}
-    >
-      <ProductCard product={item} />
-    </TouchableOpacity>
-  ), [navigation]);
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Gender Filter Tabs */}
-      <GenderTabs 
-        selectedGender={selectedGender} 
-        onGenderSelect={setSelectedGender} 
-      />
+    <GestureHandlerRootView style={styles.container}>
+      {/* Topbar */}
+      <View style={styles.topbar}>
+        <TouchableOpacity
+          style={[styles.btn, selectedPart === "top" && { backgroundColor: "#cce5ff" }]}
+          onPress={() => setSelectedPart("top")}
+        >
+          <Text>👕 Top</Text>
+        </TouchableOpacity>
 
-      {/* Results Count */}
-      <ResultsCounter 
-        count={filteredProducts.length} 
-        gender={selectedGender} 
-      />
+        <TouchableOpacity
+          style={[styles.btn, selectedPart === "bottom" && { backgroundColor: "#cce5ff" }]}
+          onPress={() => setSelectedPart("bottom")}
+        >
+          <Text>👖 Bottom</Text>
+        </TouchableOpacity>
 
-      {/* Products List */}
-      <FlatList
-        data={filteredProducts}
-        keyExtractor={(item) => item._id}
-        renderItem={renderProductItem}
-        contentContainerStyle={styles.productList}
-        ListEmptyComponent={<EmptyState gender={selectedGender} />}
-        initialNumToRender={10}
-        maxToRenderPerBatch={10}
-        windowSize={5}
-      />
+        <TouchableOpacity style={styles.btn} onPress={pickFabric}>
+          <Text>🎨 Pick Fabric</Text>
+        </TouchableOpacity>
+      </View>
 
-      {/* Review Popup */}
-      {reviewProduct && (
-        <ReviewPopup
-          visible={!!reviewProduct}
-          productId={reviewProduct.productId}
-          orderId={reviewProduct.orderId}
-          userId={userId}
-          productName={reviewProductName}
-          onClose={handleReviewClose}
+      {/* Canvas */}
+      <ViewShot ref={viewShotRef} options={{ format: "png", quality: 0.95 }}>
+        <View style={styles.canvasWrap}>
+          <Image
+            source={require("../../assets/images/model.png")}
+            style={{ width: canvasW, height: canvasH }}
+            resizeMode="contain"
+          />
+
+          {/* Top Mask */}
+          <DraggableMask
+            maskSource={require("../../assets/images/topMask.png")}
+            fabricUri={topFabricUri}
+            pos={topMaskPos}
+            setPos={setTopMaskPos}
+            scale={topMaskScale}
+            designsArray={topPlaced}
+            setDesignsArray={setTopPlaced}
+          />
+
+          {/* Bottom Mask */}
+          <DraggableMask
+            maskSource={require("../../assets/images/bottomMask.png")}
+            fabricUri={bottomFabricUri}
+            pos={bottomMaskPos}
+            setPos={setBottomMaskPos}
+            scale={bottomMaskScale}
+            designsArray={bottomPlaced}
+            setDesignsArray={setBottomPlaced}
+          />
+
+          {renderResizeButtons()}
+        </View>
+      </ViewShot>
+
+      {/* Palette */}
+      <View style={styles.palette}>
+        <FlatList
+          horizontal
+          data={designs}
+          keyExtractor={(i) => i.id}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              onPress={() => addDesign(item)}
+              style={styles.design}
+            >
+              <Image source={{ uri: item.uri }} style={styles.designImg} />
+              <Text style={styles.designLabel}>{item.name}</Text>
+            </TouchableOpacity>
+          )}
         />
-      )}
-    </SafeAreaView>
+      </View>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingTop: Platform.OS === "android" ? 30 : 40,
+    backgroundColor: "#f5f5f5",
+  },
+  topbar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 10,
+    marginBottom: 10,
+    flexWrap: "wrap",
+  },
+  btn: {
+    padding: 10,
+    backgroundColor: "#fff",
+    borderRadius: 6,
+    elevation: 2,
+    margin: 4,
+  },
+  canvasWrap: {
+    width: SCREEN_W - 40,
+    height: SCREEN_W - 40,
+    alignSelf: "center",
+    backgroundColor: "#ddd",
+    borderRadius: 6,
+    overflow: "hidden",
+    marginBottom: 10,
+  },
+  palette: {
+    height: 120,
+    marginTop: 10,
+    paddingLeft: 10,
+  },
+  design: {
+    width: 90,
+    height: 90,
+    margin: 8,
+    backgroundColor: "#fff",
+    borderRadius: 6,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  designImg: {
+    width: 70,
+    height: 70,
+    resizeMode: "contain",
+  },
+  designLabel: {
+    fontSize: 12,
+    textAlign: "center",
+    marginTop: 2,
+  },
+  resizeButtons: {
+    position: "absolute",
+    right: 10,
+    top: 10,
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    padding: 6,
+    borderRadius: 6,
+    elevation: 3,
+  },
+  resizeBtn: {
+    paddingHorizontal: 10,
+  },
+});

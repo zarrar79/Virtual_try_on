@@ -332,7 +332,6 @@ app.post("/products", authMiddleware, async (req, res) => {
         error: "At least one design with image is required." 
       });
     }
-
     // Process design images
     const savedDesigns = [];
     for (let design of designs) {
