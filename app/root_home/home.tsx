@@ -366,24 +366,25 @@
 
 // Home.js
 // Home.js
+import MaskedView from "@react-native-masked-view/masked-view";
+import * as ImagePicker from "expo-image-picker";
 import React, { useRef, useState } from "react";
 import {
-  StyleSheet,
-  View,
-  Image,
   Dimensions,
-  Platform,
-  TouchableOpacity,
-  Text,
   FlatList,
+  Image,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import {
   GestureHandlerRootView,
   PanGestureHandler,
+  State,
 } from "react-native-gesture-handler";
 import ViewShot from "react-native-view-shot";
-import * as ImagePicker from "expo-image-picker";
-import MaskedView from "@react-native-masked-view/masked-view";
 import MovableDesign from "./MovableDesign";
 
 const { width: SCREEN_W } = Dimensions.get("window");
@@ -447,8 +448,8 @@ export default function Home() {
     setSelectedId(instance.id);
   };
 
-  // ----------------- Draggable Mask Component -----------------
-  const DraggableMask = ({
+  // ----------------- SIMPLE Draggable Mask Component -----------------
+  const DraggableMask = React.useCallback(({
     maskSource,
     fabricUri,
     pos,
@@ -457,19 +458,29 @@ export default function Home() {
     designsArray,
     setDesignsArray,
   }) => {
-    const offset = useRef({ x: pos.x, y: pos.y }).current;
+    const offset = useRef({ x: pos.x, y: pos.y });
 
-    const onGestureEvent = (e) => {
+    const onGestureEvent = (event) => {
+      const { translationX, translationY } = event.nativeEvent;
+      
+      // Update position based on initial offset + translation
       setPos({
-        x: offset.x + e.nativeEvent.translationX,
-        y: offset.y + e.nativeEvent.translationY,
+        x: offset.current.x + translationX,
+        y: offset.current.y + translationY,
       });
     };
 
-    const onHandlerStateChange = (e) => {
-      if (e.nativeEvent.state === 5) {
-        offset.x = pos.x;
-        offset.y = pos.y;
+    const onHandlerStateChange = (event) => {
+      const { state } = event.nativeEvent;
+      
+      // When gesture ends, update the offset for next drag
+      if (state === State.END || state === State.CANCELLED) {
+        offset.current = { x: pos.x, y: pos.y };
+      }
+      
+      // When gesture begins, reset offset to current position
+      if (state === State.BEGAN) {
+        offset.current = { x: pos.x, y: pos.y };
       }
     };
 
@@ -481,10 +492,15 @@ export default function Home() {
         <View
           style={{
             position: "absolute",
-            left: pos.x,
-            top: pos.y,
-            width: canvasW * scale,
-            height: canvasH * scale,
+            left: 0,
+            top: 0,
+            width: canvasW,
+            height: canvasH,
+            transform: [
+              { translateX: pos.x },
+              { translateY: pos.y },
+              { scale: scale },
+            ],
           }}
         >
           <MaskedView
@@ -502,7 +518,8 @@ export default function Home() {
               style={{ width: "100%", height: "100%" }}
               resizeMode="cover"
             />
-
+            
+            {/* Designs - Fixed: Pass selectedId and setSelectedId */}
             {designsArray.map((it) => (
               <MovableDesign
                 key={it.id}
@@ -524,7 +541,7 @@ export default function Home() {
         </View>
       </PanGestureHandler>
     );
-  };
+  }, [canvasW, canvasH, selectedId, setSelectedId]);
 
   // ----------------- Resize Buttons -----------------
   const renderResizeButtons = () => (
@@ -550,6 +567,22 @@ export default function Home() {
       >
         <Text style={{ fontSize: 20 }}>-</Text>
       </TouchableOpacity>
+      
+      {/* Add Reset Button */}
+      <TouchableOpacity
+        onPress={() => {
+          if (selectedPart === "top") {
+            setTopMaskPos({ x: 0, y: 0 });
+            setTopMaskScale(1);
+          } else {
+            setBottomMaskPos({ x: 0, y: 0 });
+            setBottomMaskScale(1);
+          }
+        }}
+        style={[styles.resizeBtn, { marginLeft: 10 }]}
+      >
+        <Text style={{ fontSize: 16 }}>Reset</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -573,6 +606,22 @@ export default function Home() {
 
         <TouchableOpacity style={styles.btn} onPress={pickFabric}>
           <Text>🎨 Pick Fabric</Text>
+        </TouchableOpacity>
+        
+        {/* Add Reset Button to Topbar too */}
+        <TouchableOpacity 
+          style={styles.btn} 
+          onPress={() => {
+            if (selectedPart === "top") {
+              setTopMaskPos({ x: 0, y: 0 });
+              setTopMaskScale(1);
+            } else {
+              setBottomMaskPos({ x: 0, y: 0 });
+              setBottomMaskScale(1);
+            }
+          }}
+        >
+          <Text>🔄 Reset</Text>
         </TouchableOpacity>
       </View>
 
@@ -610,6 +659,19 @@ export default function Home() {
           {renderResizeButtons()}
         </View>
       </ViewShot>
+
+      {/* Debug Position Info */}
+      <View style={styles.debugInfo}>
+        <Text style={styles.debugText}>
+          {selectedPart === "top" 
+            ? `Top: X=${topMaskPos.x.toFixed(1)}, Y=${topMaskPos.y.toFixed(1)}, Scale=${topMaskScale.toFixed(1)}`
+            : `Bottom: X=${bottomMaskPos.x.toFixed(1)}, Y=${bottomMaskPos.y.toFixed(1)}, Scale=${bottomMaskScale.toFixed(1)}`
+          }
+        </Text>
+        <Text style={styles.debugText}>
+          Touch and drag the {selectedPart} fabric to move it
+        </Text>
+      </View>
 
       {/* Palette */}
       <View style={styles.palette}>
@@ -694,8 +756,21 @@ const styles = StyleSheet.create({
     padding: 6,
     borderRadius: 6,
     elevation: 3,
+    alignItems: "center",
   },
   resizeBtn: {
     paddingHorizontal: 10,
+  },
+  debugInfo: {
+    padding: 10,
+    backgroundColor: "#fff",
+    marginHorizontal: 20,
+    borderRadius: 6,
+    marginTop: 5,
+  },
+  debugText: {
+    fontSize: 12,
+    color: "#666",
+    textAlign: "center",
   },
 });
