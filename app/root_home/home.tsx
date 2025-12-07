@@ -375,6 +375,7 @@ import {
   Image,
   Platform,
   StyleSheet,
+  ScrollView,
   Text,
   TouchableOpacity,
   View,
@@ -871,6 +872,13 @@ export default function Home() {
           <Text>🗑️ Clear Pattern</Text>
         </TouchableOpacity>
       </View>
+      
+{/* Scrollable Content */}
+<ScrollView 
+  style={{ flex: 1 }}
+  contentContainerStyle={{ paddingBottom: 20 }}
+  showsVerticalScrollIndicator={true}
+>
 
       {/* Canvas */}
       <ViewShot ref={viewShotRef} options={{ format: "png", quality: 0.95 }}>
@@ -968,6 +976,7 @@ export default function Home() {
           )}
         />
       </View>
+      </ScrollView>
     </GestureHandlerRootView>
   );
 }
