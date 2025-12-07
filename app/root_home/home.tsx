@@ -406,17 +406,34 @@ export default function Home() {
   const [bottomPlaced, setBottomPlaced] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
 
-  const [designs] = useState([
+  // Dummy designs for customizing masks (patterns/designs)
+  const [maskDesigns] = useState([
+    { id: "pattern1", uri: "https://i.imgur.com/3n9bG2V.png", name: "Star Pattern", type: "pattern" },
+    { id: "pattern2", uri: "https://i.imgur.com/2yaf2wb.png", name: "Flower Pattern", type: "pattern" },
+    { id: "pattern3", uri: "https://i.imgur.com/LlT8Q7z.png", name: "Polka Dots", type: "pattern" },
+    { id: "pattern4", uri: "https://i.imgur.com/Y7F8jQ3.png", name: "Stripes", type: "pattern" },
+    { id: "pattern5", uri: "https://i.imgur.com/KjLf7Jt.png", name: "Geometric", type: "pattern" },
+    { id: "pattern6", uri: "https://i.imgur.com/9w8Zb6N.png", name: "Hearts", type: "pattern" },
+  ]);
+
+  // Decorative designs (separate from patterns)
+  const [decorativeDesigns] = useState([
     { id: "d1", uri: "https://i.imgur.com/3n9bG2V.png", name: "Star" },
     { id: "d2", uri: "https://i.imgur.com/2yaf2wb.png", name: "Flower" },
+    { id: "d3", uri: "https://i.imgur.com/LlT8Q7z.png", name: "Butterfly" },
+    { id: "d4", uri: "https://i.imgur.com/Y7F8jQ3.png", name: "Logo" },
   ]);
 
   // ----------------- Mask positions & scales -----------------
   const [topMaskPos, setTopMaskPos] = useState({ x: 0, y: 0 });
   const [topMaskScale, setTopMaskScale] = useState(1);
+  const [topMaskDesignUri, setTopMaskDesignUri] = useState(null);
+  const [topMaskOpacity, setTopMaskOpacity] = useState(1.0);
 
   const [bottomMaskPos, setBottomMaskPos] = useState({ x: 0, y: 0 });
   const [bottomMaskScale, setBottomMaskScale] = useState(1);
+  const [bottomMaskDesignUri, setBottomMaskDesignUri] = useState(null);
+  const [bottomMaskOpacity, setBottomMaskOpacity] = useState(1.0);
 
   // Scale limits - WIDER RANGE for more flexibility
   const MIN_SCALE = 0.1;    // 10% - Can make very small
@@ -464,10 +481,32 @@ export default function Home() {
     setSelectedId(instance.id);
   };
 
+  // ----------------- Add mask design (pattern) -----------------
+  const addMaskDesign = (design) => {
+    if (selectedPart === "top") {
+      setTopMaskDesignUri(design.uri);
+    } else {
+      setBottomMaskDesignUri(design.uri);
+    }
+  };
+
+  // ----------------- Clear mask design -----------------
+  const clearMaskDesign = () => {
+    if (selectedPart === "top") {
+      setTopMaskDesignUri(null);
+      setTopMaskOpacity(1.0);
+    } else {
+      setBottomMaskDesignUri(null);
+      setBottomMaskOpacity(1.0);
+    }
+  };
+
   // ----------------- SIMPLE Draggable Mask Component -----------------
   const DraggableMask = React.useCallback(({
     maskSource,
     fabricUri,
+    maskDesignUri,
+    opacity,
     pos,
     setPos,
     scale,
@@ -526,12 +565,28 @@ export default function Home() {
               />
             }
           >
+            {/* Main fabric layer */}
             <Image
               source={{ uri: fabricUri || "https://i.imgur.com/6KQ2c0n.jpg" }}
               style={{ width: "100%", height: "100%" }}
               resizeMode="cover"
             />
             
+            {/* Mask design overlay (pattern) */}
+            {maskDesignUri && (
+              <Image
+                source={{ uri: maskDesignUri }}
+                style={{
+                  position: "absolute",
+                  width: "100%",
+                  height: "100%",
+                  opacity: opacity,
+                  resizeMode: "repeat",
+                }}
+              />
+            )}
+            
+            {/* Decorative designs */}
             {designsArray.map((it) => (
               <MovableDesign
                 key={it.id}
@@ -558,66 +613,129 @@ export default function Home() {
   // ----------------- Enhanced Percentage Controls -----------------
   const renderPercentageControls = () => {
     const currentScale = selectedPart === "top" ? topMaskScale : bottomMaskScale;
+    const currentOpacity = selectedPart === "top" ? topMaskOpacity : bottomMaskOpacity;
     const percentage = Math.round(((currentScale - MIN_SCALE) / (MAX_SCALE - MIN_SCALE)) * 100);
-    const actualPercentage = Math.round(currentScale * 100); // Actual percentage of original size
-    
+    const actualPercentage = Math.round(currentScale * 100);
+    const opacityPercentage = Math.round(currentOpacity * 100);
+
     return (
       <View style={styles.percentageContainer}>
         {/* Header with current percentage */}
         <View style={styles.percentageHeader}>
-          <Text style={styles.percentageLabel}>Size: {actualPercentage}% of original</Text>
-          <Text style={styles.percentageValue}>Position: {percentage}% of range</Text>
+          <Text style={styles.percentageLabel}>Size: {actualPercentage}%</Text>
+          <Text style={styles.percentageValue}>Opacity: {opacityPercentage}%</Text>
         </View>
         
-        {/* Main Slider */}
-        <View style={styles.sliderContainer}>
-          <TouchableOpacity 
-            style={styles.sliderLimitButton}
-            onPress={() => {
-              if (selectedPart === "top") setTopMaskScale(MIN_SCALE);
-              else setBottomMaskScale(MIN_SCALE);
-            }}
-          >
-            <Text style={styles.sliderLimitText}>Min</Text>
-            <Text style={styles.sliderLimitPercent}>10%</Text>
-          </TouchableOpacity>
-          
-          <View style={styles.sliderWrapper}>
-            <Slider
-              style={styles.slider}
-              minimumValue={MIN_SCALE}
-              maximumValue={MAX_SCALE}
-              step={0.01} // Very fine control
-              value={currentScale}
-              onValueChange={(value) => {
+        {/* Scale Slider */}
+        <View style={styles.sliderGroup}>
+          <Text style={styles.sliderLabel}>Mask Size Control</Text>
+          <View style={styles.sliderContainer}>
+            <TouchableOpacity 
+              style={styles.sliderLimitButton}
+              onPress={() => {
+                if (selectedPart === "top") setTopMaskScale(MIN_SCALE);
+                else setBottomMaskScale(MIN_SCALE);
+              }}
+            >
+              <Text style={styles.sliderLimitText}>10%</Text>
+            </TouchableOpacity>
+            
+            <View style={styles.sliderWrapper}>
+              <Slider
+                style={styles.slider}
+                minimumValue={MIN_SCALE}
+                maximumValue={MAX_SCALE}
+                step={0.01}
+                value={currentScale}
+                onValueChange={(value) => {
+                  if (selectedPart === "top") setTopMaskScale(value);
+                  else setBottomMaskScale(value);
+                }}
+                minimumTrackTintColor="#4a90e2"
+                maximumTrackTintColor="#d3d3d3"
+                thumbTintColor="#4a90e2"
+              />
+              <Text style={styles.currentScaleText}>{actualPercentage}%</Text>
+            </View>
+            
+            <TouchableOpacity 
+              style={styles.sliderLimitButton}
+              onPress={() => {
+                if (selectedPart === "top") setTopMaskScale(MAX_SCALE);
+                else setBottomMaskScale(MAX_SCALE);
+              }}
+            >
+              <Text style={styles.sliderLimitText}>500%</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Opacity Slider */}
+        <View style={styles.sliderGroup}>
+          <Text style={styles.sliderLabel}>Pattern Opacity</Text>
+          <View style={styles.sliderContainer}>
+            <Text style={styles.sliderLimitText}>0%</Text>
+            <View style={styles.sliderWrapper}>
+              <Slider
+                style={styles.slider}
+                minimumValue={0}
+                maximumValue={1}
+                step={0.01}
+                value={currentOpacity}
+                onValueChange={(value) => {
+                  if (selectedPart === "top") setTopMaskOpacity(value);
+                  else setBottomMaskOpacity(value);
+                }}
+                minimumTrackTintColor="#ff6b6b"
+                maximumTrackTintColor="#d3d3d3"
+                thumbTintColor="#ff6b6b"
+              />
+              <Text style={styles.currentScaleText}>{opacityPercentage}%</Text>
+            </View>
+            <Text style={styles.sliderLimitText}>100%</Text>
+          </View>
+        </View>
+        
+        {/* Precision Zoom Controls */}
+        <View style={styles.precisionControls}>
+          <Text style={styles.precisionLabel}>Precision Zoom (±1%)</Text>
+          <View style={styles.precisionButtons}>
+            <TouchableOpacity
+              style={[styles.precisionButton, styles.decreaseButton]}
+              onPress={() => {
                 if (selectedPart === "top") {
-                  setTopMaskScale(value);
+                  setTopMaskScale(Math.max(MIN_SCALE, topMaskScale - 0.01));
                 } else {
-                  setBottomMaskScale(value);
+                  setBottomMaskScale(Math.max(MIN_SCALE, bottomMaskScale - 0.01));
                 }
               }}
-              minimumTrackTintColor="#4a90e2"
-              maximumTrackTintColor="#d3d3d3"
-              thumbTintColor="#4a90e2"
-            />
-            <Text style={styles.currentScaleText}>{actualPercentage}%</Text>
+            >
+              <Text style={styles.precisionButtonText}>-1%</Text>
+            </TouchableOpacity>
+            
+            <View style={styles.percentageDisplay}>
+              <Text style={styles.currentPercentage}>{actualPercentage}%</Text>
+              <Text style={styles.currentLabel}>Current Size</Text>
+            </View>
+            
+            <TouchableOpacity
+              style={[styles.precisionButton, styles.increaseButton]}
+              onPress={() => {
+                if (selectedPart === "top") {
+                  setTopMaskScale(Math.min(MAX_SCALE, topMaskScale + 0.01));
+                } else {
+                  setBottomMaskScale(Math.min(MAX_SCALE, bottomMaskScale + 0.01));
+                }
+              }}
+            >
+              <Text style={styles.precisionButtonText}>+1%</Text>
+            </TouchableOpacity>
           </View>
-          
-          <TouchableOpacity 
-            style={styles.sliderLimitButton}
-            onPress={() => {
-              if (selectedPart === "top") setTopMaskScale(MAX_SCALE);
-              else setBottomMaskScale(MAX_SCALE);
-            }}
-          >
-            <Text style={styles.sliderLimitText}>Max</Text>
-            <Text style={styles.sliderLimitPercent}>500%</Text>
-          </TouchableOpacity>
         </View>
         
-        {/* Quick Percentage Presets */}
+        {/* Quick Presets */}
         <View style={styles.quickPresetsContainer}>
-          <Text style={styles.presetsLabel}>Quick Presets:</Text>
+          <Text style={styles.presetsLabel}>Quick Size Presets:</Text>
           <View style={styles.presetButtons}>
             {Object.entries(SCALE_PRESETS).map(([key, value]) => {
               const presetPercentage = Math.round(value * 100);
@@ -631,19 +749,16 @@ export default function Home() {
                     isActive && styles.presetButtonActive
                   ]}
                   onPress={() => {
-                    if (selectedPart === "top") {
-                      setTopMaskScale(value);
-                    } else {
-                      setBottomMaskScale(value);
-                    }
+                    if (selectedPart === "top") setTopMaskScale(value);
+                    else setBottomMaskScale(value);
                   }}
                 >
                   <Text style={[
                     styles.presetButtonText,
                     isActive && styles.presetButtonTextActive
                   ]}>
-                    {key === 'MIN' ? 'Min' : 
-                     key === 'MAX' ? 'Max' : 
+                    {key === 'MIN' ? '10%' : 
+                     key === 'MAX' ? '500%' : 
                      `${presetPercentage}%`}
                   </Text>
                 </TouchableOpacity>
@@ -652,103 +767,31 @@ export default function Home() {
           </View>
         </View>
         
-        {/* Fine Adjustment Buttons */}
-        <View style={styles.fineAdjustmentContainer}>
-          <Text style={styles.fineAdjustmentLabel}>Fine Adjust:</Text>
-          <View style={styles.fineAdjustmentButtons}>
-            <TouchableOpacity
-              style={[styles.fineAdjustButton, styles.fineAdjustButtonSmall]}
-              onPress={() => {
-                if (selectedPart === "top") {
-                  setTopMaskScale(Math.max(MIN_SCALE, topMaskScale - 0.01));
-                } else {
-                  setBottomMaskScale(Math.max(MIN_SCALE, bottomMaskScale - 0.01));
-                }
-              }}
-            >
-              <Text style={styles.fineAdjustButtonText}>-1%</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.fineAdjustButton, styles.fineAdjustButtonLarge]}
-              onPress={() => {
-                if (selectedPart === "top") {
-                  setTopMaskScale(Math.max(MIN_SCALE, topMaskScale - 0.1));
-                } else {
-                  setBottomMaskScale(Math.max(MIN_SCALE, bottomMaskScale - 0.1));
-                }
-              }}
-            >
-              <Text style={styles.fineAdjustButtonText}>-10%</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.fineAdjustButton, styles.fineAdjustButtonReset]}
-              onPress={() => {
-                if (selectedPart === "top") {
-                  setTopMaskScale(1);
-                } else {
-                  setBottomMaskScale(1);
-                }
-              }}
-            >
-              <Text style={styles.fineAdjustButtonText}>100%</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.fineAdjustButton, styles.fineAdjustButtonLarge]}
-              onPress={() => {
-                if (selectedPart === "top") {
-                  setTopMaskScale(Math.min(MAX_SCALE, topMaskScale + 0.1));
-                } else {
-                  setBottomMaskScale(Math.min(MAX_SCALE, bottomMaskScale + 0.1));
-                }
-              }}
-            >
-              <Text style={styles.fineAdjustButtonText}>+10%</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.fineAdjustButton, styles.fineAdjustButtonSmall]}
-              onPress={() => {
-                if (selectedPart === "top") {
-                  setTopMaskScale(Math.min(MAX_SCALE, topMaskScale + 0.01));
-                } else {
-                  setBottomMaskScale(Math.min(MAX_SCALE, bottomMaskScale + 0.01));
-                }
-              }}
-            >
-              <Text style={styles.fineAdjustButtonText}>+1%</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-        
-        {/* Extreme Size Buttons */}
-        <View style={styles.extremeButtonsContainer}>
+        {/* Reset Buttons */}
+        <View style={styles.resetButtons}>
           <TouchableOpacity
-            style={[styles.extremeButton, styles.extremeMinButton]}
+            style={[styles.resetButton, styles.resetSizeButton]}
             onPress={() => {
-              if (selectedPart === "top") {
-                setTopMaskScale(MIN_SCALE);
-              } else {
-                setBottomMaskScale(MIN_SCALE);
-              }
+              if (selectedPart === "top") setTopMaskScale(1);
+              else setBottomMaskScale(1);
             }}
           >
-            <Text style={styles.extremeButtonText}>Make Smallest (10%)</Text>
+            <Text style={styles.resetButtonText}>Reset Size to 100%</Text>
           </TouchableOpacity>
           
           <TouchableOpacity
-            style={[styles.extremeButton, styles.extremeMaxButton]}
+            style={[styles.resetButton, styles.resetPositionButton]}
             onPress={() => {
               if (selectedPart === "top") {
-                setTopMaskScale(MAX_SCALE);
+                setTopMaskPos({ x: 0, y: 0 });
+                setTopMaskScale(1);
               } else {
-                setBottomMaskScale(MAX_SCALE);
+                setBottomMaskPos({ x: 0, y: 0 });
+                setBottomMaskScale(1);
               }
             }}
           >
-            <Text style={styles.extremeButtonText}>Make Largest (500%)</Text>
+            <Text style={styles.resetButtonText}>Reset Position & Size</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -761,25 +804,25 @@ export default function Home() {
       <TouchableOpacity
         onPress={() => {
           if (selectedPart === "top") 
-            setTopMaskScale(Math.max(MIN_SCALE, topMaskScale - 0.1));
+            setTopMaskScale(Math.max(MIN_SCALE, topMaskScale - 0.01)); // 1%
           else
-            setBottomMaskScale(Math.max(MIN_SCALE, bottomMaskScale - 0.1));
+            setBottomMaskScale(Math.max(MIN_SCALE, bottomMaskScale - 0.01));
         }}
         style={styles.resizeBtn}
       >
-        <Text style={{ fontSize: 20 }}>-</Text>
+        <Text style={{ fontSize: 18, fontWeight: 'bold' }}>-1%</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         onPress={() => {
           if (selectedPart === "top") 
-            setTopMaskScale(Math.min(MAX_SCALE, topMaskScale + 0.1));
+            setTopMaskScale(Math.min(MAX_SCALE, topMaskScale + 0.01)); // 1%
           else
-            setBottomMaskScale(Math.min(MAX_SCALE, bottomMaskScale + 0.1));
+            setBottomMaskScale(Math.min(MAX_SCALE, bottomMaskScale + 0.01));
         }}
         style={styles.resizeBtn}
       >
-        <Text style={{ fontSize: 20 }}>+</Text>
+        <Text style={{ fontSize: 18, fontWeight: 'bold' }}>+1%</Text>
       </TouchableOpacity>
       
       <TouchableOpacity
@@ -794,7 +837,7 @@ export default function Home() {
         }}
         style={[styles.resizeBtn, { marginLeft: 10 }]}
       >
-        <Text style={{ fontSize: 16 }}>Reset</Text>
+        <Text style={{ fontSize: 14, fontWeight: '600' }}>Reset</Text>
       </TouchableOpacity>
     </View>
   );
@@ -823,17 +866,9 @@ export default function Home() {
         
         <TouchableOpacity 
           style={styles.btn} 
-          onPress={() => {
-            if (selectedPart === "top") {
-              setTopMaskPos({ x: 0, y: 0 });
-              setTopMaskScale(1);
-            } else {
-              setBottomMaskPos({ x: 0, y: 0 });
-              setBottomMaskScale(1);
-            }
-          }}
+          onPress={clearMaskDesign}
         >
-          <Text>🔄 Reset</Text>
+          <Text>🗑️ Clear Pattern</Text>
         </TouchableOpacity>
       </View>
 
@@ -850,6 +885,8 @@ export default function Home() {
           <DraggableMask
             maskSource={require("../../assets/images/topMask.png")}
             fabricUri={topFabricUri}
+            maskDesignUri={topMaskDesignUri}
+            opacity={topMaskOpacity}
             pos={topMaskPos}
             setPos={setTopMaskPos}
             scale={topMaskScale}
@@ -861,6 +898,8 @@ export default function Home() {
           <DraggableMask
             maskSource={require("../../assets/images/bottomMask.png")}
             fabricUri={bottomFabricUri}
+            maskDesignUri={bottomMaskDesignUri}
+            opacity={bottomMaskOpacity}
             pos={bottomMaskPos}
             setPos={setBottomMaskPos}
             scale={bottomMaskScale}
@@ -875,24 +914,48 @@ export default function Home() {
       {/* Enhanced Percentage Controls */}
       {renderPercentageControls()}
 
+      {/* Mask Patterns Palette */}
+      <View style={styles.patternsContainer}>
+        <Text style={styles.patternsTitle}>Mask Patterns (For {selectedPart})</Text>
+        <FlatList
+          horizontal
+          data={maskDesigns}
+          keyExtractor={(i) => i.id}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              onPress={() => addMaskDesign(item)}
+              style={[
+                styles.patternItem,
+                ((selectedPart === "top" && topMaskDesignUri === item.uri) || 
+                 (selectedPart === "bottom" && bottomMaskDesignUri === item.uri)) && 
+                styles.patternItemActive
+              ]}
+            >
+              <Image source={{ uri: item.uri }} style={styles.patternImage} />
+              <Text style={styles.patternLabel}>{item.name}</Text>
+            </TouchableOpacity>
+          )}
+        />
+      </View>
+
       {/* Debug Position Info */}
       <View style={styles.debugInfo}>
         <Text style={styles.debugText}>
-          {selectedPart === "top" 
-            ? `Top: X=${topMaskPos.x.toFixed(1)}, Y=${topMaskPos.y.toFixed(1)}, Scale=${topMaskScale.toFixed(3)} (${Math.round(topMaskScale * 100)}%)`
-            : `Bottom: X=${bottomMaskPos.x.toFixed(1)}, Y=${bottomMaskPos.y.toFixed(1)}, Scale=${bottomMaskScale.toFixed(3)} (${Math.round(bottomMaskScale * 100)}%)`
-          }
+          Editing: {selectedPart.toUpperCase()} | 
+          Size: {Math.round((selectedPart === "top" ? topMaskScale : bottomMaskScale) * 100)}% | 
+          Pattern: {(selectedPart === "top" ? topMaskDesignUri : bottomMaskDesignUri) ? "Yes" : "No"}
         </Text>
         <Text style={styles.debugText}>
-          Touch and drag the {selectedPart} fabric to move it
+          Drag to move • +/- 1% buttons for precision zoom
         </Text>
       </View>
 
-      {/* Palette */}
+      {/* Decorative Designs Palette */}
       <View style={styles.palette}>
+        <Text style={styles.paletteTitle}>Decorative Designs</Text>
         <FlatList
           horizontal
-          data={designs}
+          data={decorativeDesigns}
           keyExtractor={(i) => i.id}
           renderItem={({ item }) => (
             <TouchableOpacity
@@ -938,16 +1001,91 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginBottom: 10,
   },
+  resizeButtons: {
+    position: "absolute",
+    right: 10,
+    top: 10,
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    padding: 8,
+    borderRadius: 8,
+    elevation: 3,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+  },
+  resizeBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "#f0f0f0",
+    borderRadius: 4,
+    marginHorizontal: 4,
+  },
+  
+  // Patterns Container
+  patternsContainer: {
+    backgroundColor: "#fff",
+    marginHorizontal: 20,
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 10,
+    elevation: 2,
+  },
+  patternsTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 10,
+  },
+  patternItem: {
+    width: 80,
+    height: 80,
+    margin: 6,
+    backgroundColor: "#f8f8f8",
+    borderRadius: 6,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  patternItemActive: {
+    borderColor: "#4a90e2",
+    backgroundColor: "#e8f0fe",
+  },
+  patternImage: {
+    width: 60,
+    height: 60,
+    resizeMode: "contain",
+  },
+  patternLabel: {
+    fontSize: 10,
+    textAlign: "center",
+    marginTop: 4,
+    color: "#666",
+  },
+  
+  // Palette
   palette: {
     height: 120,
     marginTop: 10,
     paddingLeft: 10,
+    backgroundColor: "#fff",
+    paddingTop: 10,
+  },
+  paletteTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    marginLeft: 10,
+    marginBottom: 8,
   },
   design: {
     width: 90,
     height: 90,
     margin: 8,
-    backgroundColor: "#fff",
+    backgroundColor: "#f8f8f8",
     borderRadius: 6,
     justifyContent: "center",
     alignItems: "center",
@@ -962,20 +1100,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 2,
   },
-  resizeButtons: {
-    position: "absolute",
-    right: 10,
-    top: 10,
-    flexDirection: "row",
-    backgroundColor: "#fff",
-    padding: 6,
-    borderRadius: 6,
-    elevation: 3,
-    alignItems: "center",
-  },
-  resizeBtn: {
-    paddingHorizontal: 10,
-  },
+  
   debugInfo: {
     padding: 10,
     backgroundColor: "#fff",
@@ -989,6 +1114,7 @@ const styles = StyleSheet.create({
     color: "#666",
     textAlign: "center",
   },
+  
   // Enhanced Percentage Controls Styles
   percentageContainer: {
     backgroundColor: "#fff",
@@ -1015,12 +1141,20 @@ const styles = StyleSheet.create({
   percentageValue: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#4a90e2",
+    color: "#ff6b6b",
+  },
+  sliderGroup: {
+    marginBottom: 20,
+  },
+  sliderLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#666",
+    marginBottom: 8,
   },
   sliderContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
   },
   sliderWrapper: {
     flex: 1,
@@ -1045,11 +1179,61 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#666",
   },
-  sliderLimitPercent: {
+  
+  // Precision Controls
+  precisionControls: {
+    backgroundColor: "#f8f9fa",
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "#e9ecef",
+  },
+  precisionLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#666",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  precisionButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  precisionButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 6,
+    minWidth: 70,
+    alignItems: "center",
+    elevation: 2,
+  },
+  decreaseButton: {
+    backgroundColor: "#ffebee",
+  },
+  increaseButton: {
+    backgroundColor: "#e8f5e8",
+  },
+  precisionButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#333",
+  },
+  percentageDisplay: {
+    alignItems: "center",
+  },
+  currentPercentage: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#4a90e2",
+  },
+  currentLabel: {
     fontSize: 11,
     color: "#999",
-    marginTop: 2,
   },
+  
+  // Quick Presets
   quickPresetsContainer: {
     marginBottom: 15,
   },
@@ -1080,65 +1264,21 @@ const styles = StyleSheet.create({
     borderColor: "#4a90e2",
   },
   presetButtonText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "500",
     color: "#666",
   },
   presetButtonTextActive: {
     color: "#fff",
   },
-  fineAdjustmentContainer: {
-    marginBottom: 15,
-  },
-  fineAdjustmentLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#666",
-    marginBottom: 8,
-  },
-  fineAdjustmentButtons: {
+  
+  // Reset Buttons
+  resetButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
+    marginTop: 5,
   },
-  fineAdjustButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 2,
-  },
-  fineAdjustButtonSmall: {
-    backgroundColor: "#e8f0fe",
-    flex: 1,
-    marginHorizontal: 2,
-  },
-  fineAdjustButtonLarge: {
-    backgroundColor: "#d0e0ff",
-    flex: 1.2,
-    marginHorizontal: 2,
-  },
-  fineAdjustButtonReset: {
-    backgroundColor: "#4a90e2",
-    flex: 1.5,
-    marginHorizontal: 4,
-  },
-  fineAdjustButtonText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#4a90e2",
-  },
-  fineAdjustButtonResetText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#fff",
-  },
-  extremeButtonsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 10,
-  },
-  extremeButton: {
+  resetButton: {
     paddingVertical: 12,
     paddingHorizontal: 15,
     borderRadius: 6,
@@ -1147,13 +1287,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     elevation: 2,
   },
-  extremeMinButton: {
-    backgroundColor: "#ffebee",
+  resetSizeButton: {
+    backgroundColor: "#e8f0fe",
   },
-  extremeMaxButton: {
-    backgroundColor: "#e8f5e8",
+  resetPositionButton: {
+    backgroundColor: "#fff0f0",
   },
-  extremeButtonText: {
+  resetButtonText: {
     fontSize: 13,
     fontWeight: "600",
     color: "#333",
