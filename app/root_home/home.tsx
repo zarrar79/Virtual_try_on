@@ -368,12 +368,11 @@
 // Home.js
 import MaskedView from "@react-native-masked-view/masked-view";
 import * as ImagePicker from "expo-image-picker";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useCallback } from "react";
 import {
   Dimensions,
   FlatList,
   Image,
-  Platform,
   StyleSheet,
   ScrollView,
   Text,
@@ -397,61 +396,40 @@ export default function Home() {
   const canvasW = SCREEN_W - 40;
   const canvasH = SCREEN_W - 40;
 
-  // ----------------- Fabrics -----------------
+  // Fabric (remote URIs from image picker)
   const [topFabricUri, setTopFabricUri] = useState(null);
   const [bottomFabricUri, setBottomFabricUri] = useState(null);
   const [selectedPart, setSelectedPart] = useState("top");
 
-  // ----------------- Designs -----------------
+  // placed movable designs inside masks
   const [topPlaced, setTopPlaced] = useState([]);
   const [bottomPlaced, setBottomPlaced] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
 
-  // Dummy designs for customizing masks (patterns/designs)
+  // Patterns (local requires) — using `src` everywhere
   const [maskDesigns] = useState([
-    { id: "pattern1", uri: "https://i.imgur.com/3n9bG2V.png", name: "Star Pattern", type: "pattern" },
-    { id: "pattern2", uri: "https://i.imgur.com/2yaf2wb.png", name: "Flower Pattern", type: "pattern" },
-    { id: "pattern3", uri: "https://i.imgur.com/LlT8Q7z.png", name: "Polka Dots", type: "pattern" },
-    { id: "pattern4", uri: "https://i.imgur.com/Y7F8jQ3.png", name: "Stripes", type: "pattern" },
-    { id: "pattern5", uri: "https://i.imgur.com/KjLf7Jt.png", name: "Geometric", type: "pattern" },
-    { id: "pattern6", uri: "https://i.imgur.com/9w8Zb6N.png", name: "Hearts", type: "pattern" },
+    { id: "pattern1", src: require("../../assets/images/jp1.jpg"), name: "Jeans", type: "pattern" },
+    { id: "pattern2", src: require("../../assets/images/jp2.jpg"), name: "Jeans 2", type: "pattern" },
+    { id: "pattern3", src: require("../../assets/images/p1.jpg"), name: "Shirt", type: "pattern" },
+    { id: "pattern4", src: require("../../assets/images/p2.jpg"), name: "Shirt 2", type: "pattern" },
   ]);
 
-  // Decorative designs (separate from patterns)
-  const [decorativeDesigns] = useState([
-    { id: "d1", uri: "https://i.imgur.com/3n9bG2V.png", name: "Star" },
-    { id: "d2", uri: "https://i.imgur.com/2yaf2wb.png", name: "Flower" },
-    { id: "d3", uri: "https://i.imgur.com/LlT8Q7z.png", name: "Butterfly" },
-    { id: "d4", uri: "https://i.imgur.com/Y7F8jQ3.png", name: "Logo" },
-  ]);
-
-  // ----------------- Mask positions & scales -----------------
+  // Top mask states (store selected pattern as require() in *src* vars)
   const [topMaskPos, setTopMaskPos] = useState({ x: 0, y: 0 });
   const [topMaskScale, setTopMaskScale] = useState(1);
-  const [topMaskDesignUri, setTopMaskDesignUri] = useState(null);
+  const [topMaskDesignSrc, setTopMaskDesignSrc] = useState(null);
   const [topMaskOpacity, setTopMaskOpacity] = useState(1.0);
 
+  // Bottom mask states
   const [bottomMaskPos, setBottomMaskPos] = useState({ x: 0, y: 0 });
   const [bottomMaskScale, setBottomMaskScale] = useState(1);
-  const [bottomMaskDesignUri, setBottomMaskDesignUri] = useState(null);
+  const [bottomMaskDesignSrc, setBottomMaskDesignSrc] = useState(null);
   const [bottomMaskOpacity, setBottomMaskOpacity] = useState(1.0);
 
-  // Scale limits - WIDER RANGE for more flexibility
-  const MIN_SCALE = 0.1;    // 10% - Can make very small
-  const MAX_SCALE = 5.0;    // 500% - Can make very large
-  
-  // Default preset scales for common sizes
-  const SCALE_PRESETS = {
-    MIN: MIN_SCALE,      // 10%
-    XS: 0.25,           // 25%
-    SM: 0.5,            // 50%
-    MD: 1.0,            // 100% (default)
-    LG: 2.0,            // 200%
-    XL: 3.0,            // 300%
-    MAX: MAX_SCALE      // 500%
-  };
+  const MIN_SCALE = 0.1;
+  const MAX_SCALE = 5.0;
 
-  // ----------------- Pick Fabric -----------------
+  // Image picker
   const pickFabric = async () => {
     const res = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!res.granted) return alert("Permission required");
@@ -467,11 +445,11 @@ export default function Home() {
     }
   };
 
-  // ----------------- Add design -----------------
+  // Add movable design (use design.src)
   const addDesign = (design) => {
     const instance = {
       id: `${design.id}_${Date.now()}`,
-      designUri: design.uri,
+      designSrc: design.src, // use src (require) for local patterns
       x: canvasW / 4,
       y: canvasH / 4,
       scale: 1,
@@ -482,31 +460,27 @@ export default function Home() {
     setSelectedId(instance.id);
   };
 
-  // ----------------- Add mask design (pattern) -----------------
+  // Select pattern for mask overlay (store require() object)
   const addMaskDesign = (design) => {
-    if (selectedPart === "top") {
-      setTopMaskDesignUri(design.uri);
-    } else {
-      setBottomMaskDesignUri(design.uri);
-    }
+    if (selectedPart === "top") setTopMaskDesignSrc(design.src);
+    else setBottomMaskDesignSrc(design.src);
   };
 
-  // ----------------- Clear mask design -----------------
   const clearMaskDesign = () => {
     if (selectedPart === "top") {
-      setTopMaskDesignUri(null);
+      setTopMaskDesignSrc(null);
       setTopMaskOpacity(1.0);
     } else {
-      setBottomMaskDesignUri(null);
+      setBottomMaskDesignSrc(null);
       setBottomMaskOpacity(1.0);
     }
   };
 
-  // ----------------- SIMPLE Draggable Mask Component -----------------
-  const DraggableMask = React.useCallback(({
+  // DraggableMask: draggable, scaled mask that contains fabric + overlay + movable designs
+  const DraggableMask = useCallback(({
     maskSource,
     fabricUri,
-    maskDesignUri,
+    maskDesignSrc,
     opacity,
     pos,
     setPos,
@@ -516,9 +490,12 @@ export default function Home() {
   }) => {
     const offset = useRef({ x: pos.x, y: pos.y });
 
+    // disable moving mask while a design inside it is selected (so user can move design instead)
+    const disableMaskMove = selectedId && designsArray.some(d => d.id === selectedId);
+
     const onGestureEvent = (event) => {
-      const { translationX, translationY } = event.nativeEvent;
-      
+      if (disableMaskMove) return;
+      const { translationX = 0, translationY = 0 } = event.nativeEvent;
       setPos({
         x: offset.current.x + translationX,
         y: offset.current.y + translationY,
@@ -527,14 +504,8 @@ export default function Home() {
 
     const onHandlerStateChange = (event) => {
       const { state } = event.nativeEvent;
-      
-      if (state === State.END || state === State.CANCELLED) {
-        offset.current = { x: pos.x, y: pos.y };
-      }
-      
-      if (state === State.BEGAN) {
-        offset.current = { x: pos.x, y: pos.y };
-      }
+      if (state === State.END || state === State.CANCELLED) offset.current = { x: pos.x, y: pos.y };
+      if (state === State.BEGAN) offset.current = { x: pos.x, y: pos.y };
     };
 
     return (
@@ -566,17 +537,16 @@ export default function Home() {
               />
             }
           >
-            {/* Main fabric layer */}
             <Image
-              source={{ uri: fabricUri || "https://i.imgur.com/6KQ2c0n.jpg" }}
+              source={fabricUri ? { uri: fabricUri } : require("../../assets/images/p1.jpg")}
               style={{ width: "100%", height: "100%" }}
               resizeMode="cover"
             />
-            
-            {/* Mask design overlay (pattern) */}
-            {maskDesignUri && (
+
+            {/* Pattern overlay (local require stored in maskDesignSrc) */}
+            {maskDesignSrc && (
               <Image
-                source={{ uri: maskDesignUri }}
+                source={maskDesignSrc}
                 style={{
                   position: "absolute",
                   width: "100%",
@@ -586,8 +556,8 @@ export default function Home() {
                 }}
               />
             )}
-            
-            {/* Decorative designs */}
+
+            {/* Movable designs placed on mask */}
             {designsArray.map((it) => (
               <MovableDesign
                 key={it.id}
@@ -603,35 +573,71 @@ export default function Home() {
                   setDesignsArray((prev) => prev.filter((d) => d.id !== it.id))
                 }
                 onSelect={() => setSelectedId(it.id)}
+                onDeselect={() => setSelectedId(null)}
               />
             ))}
           </MaskedView>
         </View>
       </PanGestureHandler>
     );
-  }, [canvasW, canvasH, selectedId, setSelectedId]);
+  }, [canvasW, canvasH, selectedId]);
 
-  // ----------------- Enhanced Percentage Controls -----------------
+  const renderResizeButtons = () => (
+    <View style={styles.resizeButtons}>
+      <TouchableOpacity
+        onPress={() => {
+          if (selectedPart === "top") setTopMaskScale(Math.max(MIN_SCALE, topMaskScale - 0.01));
+          else setBottomMaskScale(Math.max(MIN_SCALE, bottomMaskScale - 0.01));
+        }}
+        style={styles.resizeBtn}
+      >
+        <Text style={{ fontSize: 18, fontWeight: 'bold' }}>-1%</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() => {
+          if (selectedPart === "top") setTopMaskScale(Math.min(MAX_SCALE, topMaskScale + 0.01));
+          else setBottomMaskScale(Math.min(MAX_SCALE, bottomMaskScale + 0.01));
+        }}
+        style={styles.resizeBtn}
+      >
+        <Text style={{ fontSize: 18, fontWeight: 'bold' }}>+1%</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() => {
+          if (selectedPart === "top") {
+            setTopMaskPos({ x: 0, y: 0 });
+            setTopMaskScale(1);
+          } else {
+            setBottomMaskPos({ x: 0, y: 0 });
+            setBottomMaskScale(1);
+          }
+        }}
+        style={[styles.resizeBtn, { marginLeft: 10 }]}
+      >
+        <Text style={{ fontSize: 14, fontWeight: '600' }}>Reset</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   const renderPercentageControls = () => {
     const currentScale = selectedPart === "top" ? topMaskScale : bottomMaskScale;
     const currentOpacity = selectedPart === "top" ? topMaskOpacity : bottomMaskOpacity;
-    const percentage = Math.round(((currentScale - MIN_SCALE) / (MAX_SCALE - MIN_SCALE)) * 100);
     const actualPercentage = Math.round(currentScale * 100);
     const opacityPercentage = Math.round(currentOpacity * 100);
 
     return (
       <View style={styles.percentageContainer}>
-        {/* Header with current percentage */}
         <View style={styles.percentageHeader}>
           <Text style={styles.percentageLabel}>Size: {actualPercentage}%</Text>
           <Text style={styles.percentageValue}>Opacity: {opacityPercentage}%</Text>
         </View>
-        
-        {/* Scale Slider */}
+
         <View style={styles.sliderGroup}>
           <Text style={styles.sliderLabel}>Mask Size Control</Text>
           <View style={styles.sliderContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.sliderLimitButton}
               onPress={() => {
                 if (selectedPart === "top") setTopMaskScale(MIN_SCALE);
@@ -640,7 +646,7 @@ export default function Home() {
             >
               <Text style={styles.sliderLimitText}>10%</Text>
             </TouchableOpacity>
-            
+
             <View style={styles.sliderWrapper}>
               <Slider
                 style={styles.slider}
@@ -658,8 +664,8 @@ export default function Home() {
               />
               <Text style={styles.currentScaleText}>{actualPercentage}%</Text>
             </View>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.sliderLimitButton}
               onPress={() => {
                 if (selectedPart === "top") setTopMaskScale(MAX_SCALE);
@@ -671,7 +677,6 @@ export default function Home() {
           </View>
         </View>
 
-        {/* Opacity Slider */}
         <View style={styles.sliderGroup}>
           <Text style={styles.sliderLabel}>Pattern Opacity</Text>
           <View style={styles.sliderContainer}>
@@ -696,156 +701,12 @@ export default function Home() {
             <Text style={styles.sliderLimitText}>100%</Text>
           </View>
         </View>
-        
-        {/* Precision Zoom Controls */}
-        <View style={styles.precisionControls}>
-          <Text style={styles.precisionLabel}>Precision Zoom (±1%)</Text>
-          <View style={styles.precisionButtons}>
-            <TouchableOpacity
-              style={[styles.precisionButton, styles.decreaseButton]}
-              onPress={() => {
-                if (selectedPart === "top") {
-                  setTopMaskScale(Math.max(MIN_SCALE, topMaskScale - 0.01));
-                } else {
-                  setBottomMaskScale(Math.max(MIN_SCALE, bottomMaskScale - 0.01));
-                }
-              }}
-            >
-              <Text style={styles.precisionButtonText}>-1%</Text>
-            </TouchableOpacity>
-            
-            <View style={styles.percentageDisplay}>
-              <Text style={styles.currentPercentage}>{actualPercentage}%</Text>
-              <Text style={styles.currentLabel}>Current Size</Text>
-            </View>
-            
-            <TouchableOpacity
-              style={[styles.precisionButton, styles.increaseButton]}
-              onPress={() => {
-                if (selectedPart === "top") {
-                  setTopMaskScale(Math.min(MAX_SCALE, topMaskScale + 0.01));
-                } else {
-                  setBottomMaskScale(Math.min(MAX_SCALE, bottomMaskScale + 0.01));
-                }
-              }}
-            >
-              <Text style={styles.precisionButtonText}>+1%</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-        
-        {/* Quick Presets */}
-        <View style={styles.quickPresetsContainer}>
-          <Text style={styles.presetsLabel}>Quick Size Presets:</Text>
-          <View style={styles.presetButtons}>
-            {Object.entries(SCALE_PRESETS).map(([key, value]) => {
-              const presetPercentage = Math.round(value * 100);
-              const isActive = Math.abs(currentScale - value) < 0.01;
-              
-              return (
-                <TouchableOpacity
-                  key={key}
-                  style={[
-                    styles.presetButton,
-                    isActive && styles.presetButtonActive
-                  ]}
-                  onPress={() => {
-                    if (selectedPart === "top") setTopMaskScale(value);
-                    else setBottomMaskScale(value);
-                  }}
-                >
-                  <Text style={[
-                    styles.presetButtonText,
-                    isActive && styles.presetButtonTextActive
-                  ]}>
-                    {key === 'MIN' ? '10%' : 
-                     key === 'MAX' ? '500%' : 
-                     `${presetPercentage}%`}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-        
-        {/* Reset Buttons */}
-        <View style={styles.resetButtons}>
-          <TouchableOpacity
-            style={[styles.resetButton, styles.resetSizeButton]}
-            onPress={() => {
-              if (selectedPart === "top") setTopMaskScale(1);
-              else setBottomMaskScale(1);
-            }}
-          >
-            <Text style={styles.resetButtonText}>Reset Size to 100%</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[styles.resetButton, styles.resetPositionButton]}
-            onPress={() => {
-              if (selectedPart === "top") {
-                setTopMaskPos({ x: 0, y: 0 });
-                setTopMaskScale(1);
-              } else {
-                setBottomMaskPos({ x: 0, y: 0 });
-                setBottomMaskScale(1);
-              }
-            }}
-          >
-            <Text style={styles.resetButtonText}>Reset Position & Size</Text>
-          </TouchableOpacity>
-        </View>
       </View>
     );
   };
 
-  // ----------------- Resize Buttons -----------------
-  const renderResizeButtons = () => (
-    <View style={styles.resizeButtons}>
-      <TouchableOpacity
-        onPress={() => {
-          if (selectedPart === "top") 
-            setTopMaskScale(Math.max(MIN_SCALE, topMaskScale - 0.01)); // 1%
-          else
-            setBottomMaskScale(Math.max(MIN_SCALE, bottomMaskScale - 0.01));
-        }}
-        style={styles.resizeBtn}
-      >
-        <Text style={{ fontSize: 18, fontWeight: 'bold' }}>-1%</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        onPress={() => {
-          if (selectedPart === "top") 
-            setTopMaskScale(Math.min(MAX_SCALE, topMaskScale + 0.01)); // 1%
-          else
-            setBottomMaskScale(Math.min(MAX_SCALE, bottomMaskScale + 0.01));
-        }}
-        style={styles.resizeBtn}
-      >
-        <Text style={{ fontSize: 18, fontWeight: 'bold' }}>+1%</Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity
-        onPress={() => {
-          if (selectedPart === "top") {
-            setTopMaskPos({ x: 0, y: 0 });
-            setTopMaskScale(1);
-          } else {
-            setBottomMaskPos({ x: 0, y: 0 });
-            setBottomMaskScale(1);
-          }
-        }}
-        style={[styles.resizeBtn, { marginLeft: 10 }]}
-      >
-        <Text style={{ fontSize: 14, fontWeight: '600' }}>Reset</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
   return (
     <GestureHandlerRootView style={styles.container}>
-      {/* Topbar */}
       <View style={styles.topbar}>
         <TouchableOpacity
           style={[styles.btn, selectedPart === "top" && { backgroundColor: "#cce5ff" }]}
@@ -864,118 +725,85 @@ export default function Home() {
         <TouchableOpacity style={styles.btn} onPress={pickFabric}>
           <Text>🎨 Pick Fabric</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.btn} 
-          onPress={clearMaskDesign}
-        >
+
+        <TouchableOpacity style={styles.btn} onPress={clearMaskDesign}>
           <Text>🗑️ Clear Pattern</Text>
         </TouchableOpacity>
       </View>
-      
-{/* Scrollable Content */}
-<ScrollView 
-  style={{ flex: 1 }}
-  contentContainerStyle={{ paddingBottom: 20 }}
-  showsVerticalScrollIndicator={true}
->
 
-      {/* Canvas */}
-      <ViewShot ref={viewShotRef} options={{ format: "png", quality: 0.95 }}>
-        <View style={styles.canvasWrap}>
-          <Image
-            source={require("../../assets/images/model.png")}
-            style={{ width: canvasW, height: canvasH }}
-            resizeMode="contain"
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={true}>
+        <ViewShot ref={viewShotRef} options={{ format: "png", quality: 0.95 }}>
+          <View style={styles.canvasWrap}>
+            <Image
+              source={require("../../assets/images/model.png")}
+              style={{ width: canvasW, height: canvasH }}
+              resizeMode="contain"
+            />
+
+            <DraggableMask
+              maskSource={require("../../assets/images/topMask.png")}
+              fabricUri={topFabricUri}
+              maskDesignSrc={topMaskDesignSrc}
+              opacity={topMaskOpacity}
+              pos={topMaskPos}
+              setPos={setTopMaskPos}
+              scale={topMaskScale}
+              designsArray={topPlaced}
+              setDesignsArray={setTopPlaced}
+            />
+
+            <DraggableMask
+              maskSource={require("../../assets/images/bottomMask.png")}
+              fabricUri={bottomFabricUri}
+              maskDesignSrc={bottomMaskDesignSrc}
+              opacity={bottomMaskOpacity}
+              pos={bottomMaskPos}
+              setPos={setBottomMaskPos}
+              scale={bottomMaskScale}
+              designsArray={bottomPlaced}
+              setDesignsArray={setBottomPlaced}
+            />
+
+            {renderResizeButtons()}
+          </View>
+        </ViewShot>
+
+        {renderPercentageControls()}
+
+        <View style={styles.patternsContainer}>
+          <Text style={styles.patternsTitle}>Mask Patterns (For {selectedPart})</Text>
+          <FlatList
+            horizontal
+            data={maskDesigns}
+            keyExtractor={(i) => i.id}
+            renderItem={({ item }) => {
+              const isActive =
+                (selectedPart === "top" && topMaskDesignSrc === item.src) ||
+                (selectedPart === "bottom" && bottomMaskDesignSrc === item.src);
+
+              return (
+                <TouchableOpacity
+                  onPress={() => addMaskDesign(item)}
+                  style={[styles.patternItem, isActive && styles.patternItemActive]}
+                >
+                  <Image source={item.src} style={styles.patternImage} />
+                  <Text style={styles.patternLabel}>{item.name}</Text>
+                </TouchableOpacity>
+              );
+            }}
           />
-
-          {/* Top Mask */}
-          <DraggableMask
-            maskSource={require("../../assets/images/topMask.png")}
-            fabricUri={topFabricUri}
-            maskDesignUri={topMaskDesignUri}
-            opacity={topMaskOpacity}
-            pos={topMaskPos}
-            setPos={setTopMaskPos}
-            scale={topMaskScale}
-            designsArray={topPlaced}
-            setDesignsArray={setTopPlaced}
-          />
-
-          {/* Bottom Mask */}
-          <DraggableMask
-            maskSource={require("../../assets/images/bottomMask.png")}
-            fabricUri={bottomFabricUri}
-            maskDesignUri={bottomMaskDesignUri}
-            opacity={bottomMaskOpacity}
-            pos={bottomMaskPos}
-            setPos={setBottomMaskPos}
-            scale={bottomMaskScale}
-            designsArray={bottomPlaced}
-            setDesignsArray={setBottomPlaced}
-          />
-
-          {renderResizeButtons()}
         </View>
-      </ViewShot>
 
-      {/* Enhanced Percentage Controls */}
-      {renderPercentageControls()}
-
-      {/* Mask Patterns Palette */}
-      <View style={styles.patternsContainer}>
-        <Text style={styles.patternsTitle}>Mask Patterns (For {selectedPart})</Text>
-        <FlatList
-          horizontal
-          data={maskDesigns}
-          keyExtractor={(i) => i.id}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              onPress={() => addMaskDesign(item)}
-              style={[
-                styles.patternItem,
-                ((selectedPart === "top" && topMaskDesignUri === item.uri) || 
-                 (selectedPart === "bottom" && bottomMaskDesignUri === item.uri)) && 
-                styles.patternItemActive
-              ]}
-            >
-              <Image source={{ uri: item.uri }} style={styles.patternImage} />
-              <Text style={styles.patternLabel}>{item.name}</Text>
-            </TouchableOpacity>
-          )}
-        />
-      </View>
-
-      {/* Debug Position Info */}
-      <View style={styles.debugInfo}>
-        <Text style={styles.debugText}>
-          Editing: {selectedPart.toUpperCase()} | 
-          Size: {Math.round((selectedPart === "top" ? topMaskScale : bottomMaskScale) * 100)}% | 
-          Pattern: {(selectedPart === "top" ? topMaskDesignUri : bottomMaskDesignUri) ? "Yes" : "No"}
-        </Text>
-        <Text style={styles.debugText}>
-          Drag to move • +/- 1% buttons for precision zoom
-        </Text>
-      </View>
-
-      {/* Decorative Designs Palette */}
-      <View style={styles.palette}>
-        <Text style={styles.paletteTitle}>Decorative Designs</Text>
-        <FlatList
-          horizontal
-          data={decorativeDesigns}
-          keyExtractor={(i) => i.id}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              onPress={() => addDesign(item)}
-              style={styles.design}
-            >
-              <Image source={{ uri: item.uri }} style={styles.designImg} />
-              <Text style={styles.designLabel}>{item.name}</Text>
-            </TouchableOpacity>
-          )}
-        />
-      </View>
+        <View style={styles.debugInfo}>
+          <Text style={styles.debugText}>
+            Editing: {selectedPart.toUpperCase()} | 
+            Size: {Math.round((selectedPart === "top" ? topMaskScale : bottomMaskScale) * 100)}% | 
+            Pattern: {(selectedPart === "top" ? (topMaskDesignSrc ? "Yes" : "No") : (bottomMaskDesignSrc ? "Yes" : "No"))}
+          </Text>
+          <Text style={styles.debugText}>
+            Drag to move • +/- 1% buttons for precision zoom
+          </Text>
+        </View>
       </ScrollView>
     </GestureHandlerRootView>
   );
@@ -984,7 +812,7 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: Platform.OS === "android" ? 30 : 40,
+    // paddingTop: Platform.OS === "android" ? 30 : 40,
     backgroundColor: "#f5f5f5",
   },
   topbar: {
@@ -1014,7 +842,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 10,
     top: 10,
-    flexDirection: "row",
+    flexDirection: "column",
+    gap: 12,
     backgroundColor: "#fff",
     padding: 8,
     borderRadius: 8,
