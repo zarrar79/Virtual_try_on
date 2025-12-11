@@ -19,6 +19,8 @@ require("dns").setDefaultResultOrder("ipv4first");
 const User = require("./models/User");
 const Product = require("./models/Product");
 const Admin = require("./models/Admin");
+const Fabric = require("./models/Fabric");
+const Pattern = require("./models/Pattern");
 const authMiddleware = require("./middleware/authMiddleWare");
 const { log } = require("console");
 
@@ -83,12 +85,10 @@ app.post(
 );
 
 app.use(cors());
-app.use(express.json());
-app.use(express.json({ limit: "10mb" })); // or higher if needed
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.json({ limit: "50mb" })); 
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 // Serve static files (uploaded images)
 app.use("/backend/uploads", express.static(path.join(__dirname, "/uploads")));
-app.use(express.urlencoded({ extended: true }));
 
 const BASE_IP_ADD = "192.168.1.16";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -312,10 +312,21 @@ app.get("/review/check/:orderId/:productId/:userId", async (req, res) => {
 // ========================= Product Routes ========================= //
 
 // CREATE product with designs only
+// CREATE product with designs only
 app.post("/products", authMiddleware, async (req, res) => {
   try {
-    const { name, brand, category, price, quantity, description, designs } =
-      req.body;
+    const {
+      name,
+      brand,
+      category,
+      price,
+      quantity,
+      description,
+      designs,
+      fabric,
+      pattern,
+      sizes,
+    } = req.body;
 
     console.log(req.body);
 
@@ -326,13 +337,14 @@ app.post("/products", authMiddleware, async (req, res) => {
       });
     }
 
-    // Validate that designs are provided
+    // Validate designs
     if (!designs || !Array.isArray(designs) || designs.length === 0) {
-      return res.status(400).json({ 
-        error: "At least one design with image is required." 
+      return res.status(400).json({
+        error: "At least one design with image is required.",
       });
     }
-    // Process design images
+
+    // ---------------- Process Designs ----------------
     const savedDesigns = [];
     for (let design of designs) {
       if (design.image) {
@@ -345,25 +357,59 @@ app.post("/products", authMiddleware, async (req, res) => {
         fs.writeFileSync(uploadPath, buffer);
 
         const designImageUrl = `/backend/uploads/${filename}`;
-        
+
         savedDesigns.push({
           imageUrl: designImageUrl,
-          stock: Number(design.stock) || 0
+          stock: Number(design.stock) || 0,
         });
       }
     }
 
-    // Validate that we have at least one design image
     if (savedDesigns.length === 0) {
-      return res.status(400).json({ 
-        error: "At least one valid design image is required." 
+      return res.status(400).json({
+        error: "At least one valid design image is required.",
       });
     }
 
-    // Calculate total quantity from designs
-    const totalQuantity = savedDesigns.reduce((total, design) => total + design.stock, 0);
+    // Calculate total quantity
+    const totalQuantity = savedDesigns.reduce(
+      (total, design) => total + design.stock,
+      0
+    );
 
-    // Save product in database
+    // ---------------- Process Fabric (if base64) ----------------
+    let fabricUrl;
+    if (fabric && fabric.startsWith("data:image")) {
+      const base64Data = fabric.replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Buffer.from(base64Data, "base64");
+
+      const filename = `fabric-${Date.now()}-${Math.random()}.png`;
+      const uploadPath = path.join(__dirname, "uploads", filename);
+
+      fs.writeFileSync(uploadPath, buffer);
+
+      fabricUrl = `/backend/uploads/${filename}`;
+    } else {
+      fabricUrl = fabric || undefined;
+    }
+
+    // ---------------- Process Pattern (if base64) ----------------
+    let patternUrl;
+    if (pattern && pattern.startsWith("data:image")) {
+      const base64Data = pattern.replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Buffer.from(base64Data, "base64");
+
+      const filename = `pattern-${Date.now()}-${Math.random()}.png`;
+      const uploadPath = path.join(__dirname, "uploads", filename);
+
+      fs.writeFileSync(uploadPath, buffer);
+
+      patternUrl = `/backend/uploads/${filename}`;
+    } else {
+      patternUrl = pattern || undefined;
+    }
+
+    // ---------------- Save Product ----------------
     const product = new Product({
       name,
       brand,
@@ -371,17 +417,21 @@ app.post("/products", authMiddleware, async (req, res) => {
       price: Number(price),
       quantity: totalQuantity,
       description,
-      designs: savedDesigns
+      designs: savedDesigns,
+      fabric: fabricUrl,
+      pattern: patternUrl,
+      sizes:
+        sizes && Array.isArray(sizes) && sizes.length > 0 ? sizes : undefined,
     });
 
     const saved = await product.save();
     res.status(201).json(saved);
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Something went wrong: " + err.message });
   }
 });
+
 
 
 // READ all products
@@ -407,31 +457,49 @@ app.get("/products/:id", authMiddleware, async (req, res) => {
 
 // UPDATE product
 
-// In your backend PUT /products/:id endpoint
+// UPDATE product
 app.put("/products/:id", authMiddleware, async (req, res) => {
   try {
-    const { designs, name, brand, category, price, quantity, description, removedDesigns } = req.body;
+    const {
+      designs,
+      name,
+      brand,
+      category,
+      price,
+      quantity,
+      description,
+      removedDesigns,
+      fabric,
+      pattern,
+      sizes,
+    } = req.body;
+
     const productId = req.params.id;
 
     console.log("Received designs for update:", designs);
     console.log("Removed designs:", removedDesigns);
 
-    // Process design images
+    // ---------------- PROCESS DESIGNS ----------------
     const savedDesigns = [];
+
     if (designs && Array.isArray(designs) && designs.length > 0) {
       for (let design of designs) {
         if (design.image) {
-          if (design.image.startsWith('/backend/uploads/') || design.image.startsWith('http')) {
-            // Existing design image - keep as is
-            console.log("Keeping existing design image:", design.image);
+          // Existing image → keep it
+          if (
+            design.image.startsWith("/backend/uploads/") ||
+            design.image.startsWith("http")
+          ) {
             savedDesigns.push({
               imageUrl: design.image,
-              stock: Number(design.stock) || 0
+              stock: Number(design.stock) || 0,
             });
           } else {
-            // New design image - process and save
-            console.log("Processing new design image");
-            const base64Data = design.image.replace(/^data:image\/\w+;base64,/, "");
+            // New base64 → convert to file
+            const base64Data = design.image.replace(
+              /^data:image\/\w+;base64,/,
+              ""
+            );
             const buffer = Buffer.from(base64Data, "base64");
 
             const filename = `design-${Date.now()}-${Math.random()}.png`;
@@ -440,30 +508,70 @@ app.put("/products/:id", authMiddleware, async (req, res) => {
             fs.writeFileSync(uploadPath, buffer);
 
             const designImageUrl = `/backend/uploads/${filename}`;
-            
+
             savedDesigns.push({
               imageUrl: designImageUrl,
-              stock: Number(design.stock) || 0
+              stock: Number(design.stock) || 0,
             });
           }
         }
       }
     }
 
-    console.log("Final saved designs:", savedDesigns);
+    // ---------------- UPDATE DATA ----------------
+    const updateData = {
+      name,
+      brand,
+      category,
+      price: Number(price),
+      quantity: Number(quantity),
+      description,
+      designs: savedDesigns,
+    };
 
-    // Update product with new designs array
+    // ---------------- HANDLE FABRIC UPDATE ----------------
+    if (fabric !== undefined) {
+      if (fabric.startsWith("data:image")) {
+        const base64Data = fabric.replace(/^data:image\/\w+;base64,/, "");
+        const buffer = Buffer.from(base64Data, "base64");
+
+        const filename = `fabric-${Date.now()}-${Math.random()}.png`;
+        const uploadPath = path.join(__dirname, "uploads", filename);
+
+        fs.writeFileSync(uploadPath, buffer);
+
+        updateData.fabric = `/backend/uploads/${filename}`;
+      } else {
+        updateData.fabric = fabric;
+      }
+    }
+
+    // ---------------- HANDLE PATTERN UPDATE ----------------
+    if (pattern !== undefined) {
+      if (pattern.startsWith("data:image")) {
+        const base64Data = pattern.replace(/^data:image\/\w+;base64,/, "");
+        const buffer = Buffer.from(base64Data, "base64");
+
+        const filename = `pattern-${Date.now()}-${Math.random()}.png`;
+        const uploadPath = path.join(__dirname, "uploads", filename);
+
+        fs.writeFileSync(uploadPath, buffer);
+
+        updateData.pattern = `/backend/uploads/${filename}`;
+      } else {
+        updateData.pattern = pattern;
+      }
+    }
+
+    // ---------------- HANDLE SIZES ----------------
+    if (sizes !== undefined) {
+      updateData.sizes =
+        sizes && Array.isArray(sizes) && sizes.length > 0 ? sizes : undefined;
+    }
+
     const updatedProduct = await Product.findByIdAndUpdate(
       productId,
-      {
-        name,
-        brand,
-        category,
-        price: Number(price),
-        quantity: Number(quantity),
-        description,
-        designs: savedDesigns // This replaces the entire designs array
-      },
+      updateData,
       { new: true }
     );
 
@@ -472,12 +580,12 @@ app.put("/products/:id", authMiddleware, async (req, res) => {
     }
 
     res.json(updatedProduct);
-
   } catch (err) {
     console.error("Update error:", err);
     res.status(500).json({ error: "Something went wrong: " + err.message });
   }
 });
+
 
 
 // DELETE product
@@ -489,6 +597,230 @@ app.delete("/products/:id", authMiddleware, async (req, res) => {
     if (!deleted)
       return res.status(404).json({ message: "Product not found " });
     res.json({ message: "Product deleted" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ========================= Fabric Routes ========================= //
+
+// GET all fabrics
+app.get("/fabrics", async (req, res) => {
+  try {
+    const fabrics = await Fabric.find().sort({ createdAt: -1 });
+    res.json(fabrics);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// CREATE fabric
+app.post("/fabrics", authMiddleware, async (req, res) => {
+  try {
+    const { name, description, image } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: "Fabric name is required" });
+    }
+
+    let fabricImageUrl = null;
+
+    // Process image if provided
+    if (image) {
+      const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Buffer.from(base64Data, "base64");
+
+      const filename = `fabric-${Date.now()}-${Math.random()}.png`;
+      const uploadPath = path.join(__dirname, "uploads", filename);
+
+      fs.writeFileSync(uploadPath, buffer);
+      fabricImageUrl = `/backend/uploads/${filename}`;
+    }
+
+    const fabric = new Fabric({
+      name,
+      description,
+      imageUrl: fabricImageUrl
+    });
+
+    const saved = await fabric.save();
+    res.status(201).json(saved);
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ error: "Fabric with this name already exists" });
+    }
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// UPDATE fabric
+app.put("/fabrics/:id", authMiddleware, async (req, res) => {
+  try {
+    const { name, description, image } = req.body;
+    
+    let fabricImageUrl = undefined;
+
+    // Process image if provided (could be new base64 image or existing URL)
+    if (image) {
+      if (image.startsWith('/backend/uploads/') || image.startsWith('http')) {
+        // Existing image URL - keep as is
+        fabricImageUrl = image;
+      } else {
+        // New base64 image - process and save
+        const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
+        const buffer = Buffer.from(base64Data, "base64");
+
+        const filename = `fabric-${Date.now()}-${Math.random()}.png`;
+        const uploadPath = path.join(__dirname, "uploads", filename);
+
+        fs.writeFileSync(uploadPath, buffer);
+        fabricImageUrl = `/backend/uploads/${filename}`;
+      }
+    }
+
+    const updateData = { name, description };
+    if (fabricImageUrl !== undefined) {
+      updateData.imageUrl = fabricImageUrl;
+    }
+    
+    const updated = await Fabric.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ error: "Fabric not found" });
+    }
+
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE fabric
+app.delete("/fabrics/:id", authMiddleware, async (req, res) => {
+  try {
+    const deleted = await Fabric.findByIdAndDelete(req.params.id);
+    
+    if (!deleted) {
+      return res.status(404).json({ error: "Fabric not found" });
+    }
+
+    res.json({ message: "Fabric deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ========================= Pattern Routes ========================= //
+
+// GET all patterns
+app.get("/patterns", async (req, res) => {
+  try {
+    const patterns = await Pattern.find().sort({ createdAt: -1 });
+    res.json(patterns);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// CREATE pattern
+app.post("/patterns", authMiddleware, async (req, res) => {
+  try {
+    const { name, description, image } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: "Pattern name is required" });
+    }
+
+    let patternImageUrl = null;
+
+    // Process image if provided
+    if (image) {
+      const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Buffer.from(base64Data, "base64");
+
+      const filename = `pattern-${Date.now()}-${Math.random()}.png`;
+      const uploadPath = path.join(__dirname, "uploads", filename);
+
+      fs.writeFileSync(uploadPath, buffer);
+      patternImageUrl = `/backend/uploads/${filename}`;
+    }
+
+    const pattern = new Pattern({
+      name,
+      description,
+      imageUrl: patternImageUrl
+    });
+
+    const saved = await pattern.save();
+    res.status(201).json(saved);
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ error: "Pattern with this name already exists" });
+    }
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// UPDATE pattern
+app.put("/patterns/:id", authMiddleware, async (req, res) => {
+  try {
+    const { name, description, image } = req.body;
+    
+    let patternImageUrl = undefined;
+
+    // Process image if provided (could be new base64 image or existing URL)
+    if (image) {
+      if (image.startsWith('/backend/uploads/') || image.startsWith('http')) {
+        // Existing image URL - keep as is
+        patternImageUrl = image;
+      } else {
+        // New base64 image - process and save
+        const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
+        const buffer = Buffer.from(base64Data, "base64");
+
+        const filename = `pattern-${Date.now()}-${Math.random()}.png`;
+        const uploadPath = path.join(__dirname, "uploads", filename);
+
+        fs.writeFileSync(uploadPath, buffer);
+        patternImageUrl = `/backend/uploads/${filename}`;
+      }
+    }
+
+    const updateData = { name, description };
+    if (patternImageUrl !== undefined) {
+      updateData.imageUrl = patternImageUrl;
+    }
+    
+    const updated = await Pattern.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ error: "Pattern not found" });
+    }
+
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE pattern
+app.delete("/patterns/:id", authMiddleware, async (req, res) => {
+  try {
+    const deleted = await Pattern.findByIdAndDelete(req.params.id);
+    
+    if (!deleted) {
+      return res.status(404).json({ error: "Pattern not found" });
+    }
+
+    res.json({ message: "Pattern deleted successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity } from 'react-native';
+import { Image, Text, TouchableOpacity, View } from 'react-native';
+import styles from '../CSS/tryYourDress';
 import { Design } from '../types/product';
-import styles from '../CSS/ProductCustomization.styles';
 
 interface DesignThumbnailProps {
   design: Design;
@@ -43,13 +43,13 @@ export const DesignThumbnail: React.FC<DesignThumbnailProps> = ({
         source={{ uri: imageUrl }}
         style={[styles.thumbnail, isOutOfStock && styles.outOfStockImage]}
       />
-      
+
       {isOutOfStock && (
         <View style={styles.outOfStockOverlay}>
           <Text style={styles.outOfStockText}>Out of Stock</Text>
         </View>
       )}
-      
+
       {isMainImage && !isOutOfStock && (
         <View style={styles.mainImageIndicator}>
           <Text style={styles.mainImageText}>Main</Text>

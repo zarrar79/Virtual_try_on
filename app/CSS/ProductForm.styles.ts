@@ -323,7 +323,6 @@ designInputWrapper: {
   stockLevelFill: {
     height: '100%',
     borderRadius: 3,
-    transition: 'all 0.3s ease',
   },
   stockLevelText: {
     fontSize: 12,
@@ -333,7 +332,41 @@ designInputWrapper: {
   designHeader:{
     flexDirection: 'row',
     justifyContent: 'space-between',
-  }
+  },
+  
+  // Size checkbox styles
+  sizeCheckboxContainer: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 8,
+  },
+  sizeCheckbox: {
+    backgroundColor: '#27272a',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#444',
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  sizeCheckboxActive: {
+    backgroundColor: '#10B981',
+    borderColor: '#10B981',
+  },
+  sizeCheckboxText: {
+    color: '#D1D5DB',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  sizeCheckboxTextActive: {
+    color: '#ffffff',
+  },
+  sizeSelectionText: {
+    color: '#10B981',
+    fontSize: 14,
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
 });
-
 export default styles;

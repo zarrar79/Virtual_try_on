@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
+import styles from '../CSS/tryYourDress';
 import { Review } from '../types/product';
-import styles from '../CSS/ProductCustomization.styles';
 
 interface ReviewsSectionProps {
   reviews: Review[];

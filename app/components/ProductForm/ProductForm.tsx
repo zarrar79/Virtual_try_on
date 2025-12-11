@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
-  View,
+  ActivityIndicator,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
-  ActivityIndicator,
-  ScrollView,
+  View,
 } from "react-native";
+import Toast from "react-native-toast-message";
+import styles from "../../CSS/ProductForm.styles";
 import ImagePickerField from "./ImagePickerField";
 import { useProductForm } from "./useProductForm";
-import styles from "../../CSS/ProductForm.styles";
-import Toast from "react-native-toast-message";
 
 interface ProductFormProps {
   isEditing: boolean;
@@ -25,17 +25,23 @@ const ProductForm: React.FC<ProductFormProps> = ({
   onSuccess,
   cancelEdit,
 }) => {
-  const { 
-    product, 
-    designs, 
-    handleChange, 
-    pickSingleImage, 
-    handleSubmit, 
+  const {
+    product,
+    designs,
+    fabricImages,
+    patternImages,
+    handleChange,
+    pickSingleImage,
+    pickFabricImage,
+    pickPatternImage,
+    setFabricImages,
+    setPatternImages,
+    handleSubmit,
     setDesigns,
     markDesignAsRemoved, // NEW: Import the function
     addNewDesign // NEW: Import the function
   } = useProductForm({ isEditing, editProductData, onSuccess });
- 
+
   const [loading, setLoading] = useState(false);
   const MIN_AMOUNT_PKR = 5000;
 
@@ -75,6 +81,42 @@ const ProductForm: React.FC<ProductFormProps> = ({
       images: [],
     };
     setDesigns(updatedDesigns);
+  };
+
+  // Handle fabric image pick
+  const handleFabricImagePick = async () => {
+    try {
+      const selectedImages = await pickFabricImage();
+      if (selectedImages && selectedImages.length > 0) {
+        setFabricImages(selectedImages);
+      }
+    } catch (error) {
+      console.error("Error picking fabric image:", error);
+      showToast("error", "Failed to pick fabric image");
+    }
+  };
+
+  // Handle fabric image removal
+  const handleFabricImageRemove = () => {
+    setFabricImages([]);
+  };
+
+  // Handle pattern image pick
+  const handlePatternImagePick = async () => {
+    try {
+      const selectedImages = await pickPatternImage();
+      if (selectedImages && selectedImages.length > 0) {
+        setPatternImages(selectedImages);
+      }
+    } catch (error) {
+      console.error("Error picking pattern image:", error);
+      showToast("error", "Failed to pick pattern image");
+    }
+  };
+
+  // Handle pattern image removal
+  const handlePatternImageRemove = () => {
+    setPatternImages([]);
   };
 
   // Handle design stock change
@@ -118,7 +160,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
     // Validate designs - UPDATED: Consider only non-removed designs
     const activeDesigns = designs.filter(design => !design.isRemoved);
-    
+
     if (activeDesigns.length === 0) {
       showToast("error", "Please add at least one design.");
       return;
@@ -127,7 +169,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
     const invalidDesigns = activeDesigns.filter(
       design => design.images.length === 0 || !design.stock || parseInt(design.stock) <= 0
     );
-    
+
     if (invalidDesigns.length > 0) {
       showToast("error", "Please add image and stock for all designs.");
       return;
@@ -191,23 +233,78 @@ const ProductForm: React.FC<ProductFormProps> = ({
         />
       </View>
 
+      {/* Fabric Image Field */}
+      <View style={styles.inputWrapper}>
+        <Text style={styles.label}>Fabric Image (Optional)</Text>
+        <ImagePickerField
+          images={fabricImages}
+          onPick={handleFabricImagePick}
+          onRemove={handleFabricImageRemove}
+        />
+      </View>
+
+      {/* Pattern Image Field */}
+      <View style={styles.inputWrapper}>
+        <Text style={styles.label}>Pattern Image (Optional)</Text>
+        <ImagePickerField
+          images={patternImages}
+          onPick={handlePatternImagePick}
+          onRemove={handlePatternImageRemove}
+        />
+      </View>
+
+      {/* Sizes Selection */}
+      <View style={styles.inputWrapper}>
+        <Text style={styles.label}>Available Sizes (Optional)</Text>
+        <View style={styles.sizeCheckboxContainer}>
+          {['S', 'M', 'L'].map((size) => (
+            <TouchableOpacity
+              key={size}
+              style={[
+                styles.sizeCheckbox,
+                product.sizes?.includes(size) && styles.sizeCheckboxActive
+              ]}
+              onPress={() => {
+                const currentSizes = product.sizes || [];
+                const newSizes = currentSizes.includes(size)
+                  ? currentSizes.filter(s => s !== size)
+                  : [...currentSizes, size];
+                handleChange("sizes", newSizes);
+              }}
+            >
+              <Text style={[
+                styles.sizeCheckboxText,
+                product.sizes?.includes(size) && styles.sizeCheckboxTextActive
+              ]}>
+                {size}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        {product.sizes && product.sizes.length > 0 && (
+          <Text style={styles.sizeSelectionText}>
+            Selected: {product.sizes.join(', ')}
+          </Text>
+        )}
+      </View>
+
       {/* Designs Section */}
       <View style={styles.designsSection}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>
             Product Designs ({designs.filter(d => !d.isRemoved).length} active)
           </Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.addDesignButton}
             onPress={addNewDesign}
           >
             <Text style={styles.addDesignButtonText}>+ Add New Design</Text>
           </TouchableOpacity>
         </View>
-        
+
         {designs.map((design, designIndex) => (
-          <View 
-            key={design.id} 
+          <View
+            key={design.id}
             style={[
               styles.designCard,
               design.isRemoved && styles.removedDesignCard // NEW: Style for removed designs
@@ -225,17 +322,17 @@ const ProductForm: React.FC<ProductFormProps> = ({
                   {!design.isOld && !design.isRemoved && " (New)"}
                 </Text>
               </View>
-              
+
               <View style={styles.designActions}>
                 {design.isRemoved ? (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.restoreDesignButton}
                     onPress={() => handleRestoreDesign(designIndex)}
                   >
                     <Text style={styles.restoreDesignText}>Restore</Text>
                   </TouchableOpacity>
                 ) : (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.removeDesignButton}
                     onPress={() => handleRemoveDesign(designIndex)}
                   >
@@ -246,12 +343,12 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 )}
               </View>
             </View>
-            
+
             {/* Design Image - Hide if removed */}
             {!design.isRemoved && (
               <View style={styles.designImageSection}>
                 <Text style={styles.designLabel}>Design Image*</Text>
-                <ImagePickerField 
+                <ImagePickerField
                   images={design.images}
                   onPick={() => handleDesignImagePick(designIndex)}
                   onRemove={() => handleDesignImageRemove(designIndex)}

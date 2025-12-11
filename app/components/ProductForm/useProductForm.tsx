@@ -1,11 +1,11 @@
 // components/ProductForm/useProductForm.ts
-import { useEffect, useState } from "react";
-import { Alert, Platform } from "react-native";
-import * as ImagePicker from "expo-image-picker";
-import * as ImageManipulator from "expo-image-manipulator";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useApi } from "../../context/ApiContext";
+import * as ImageManipulator from "expo-image-manipulator";
+import * as ImagePicker from "expo-image-picker";
+import { useEffect, useState } from "react";
+import { Alert } from "react-native";
 import Toast from "react-native-toast-message";
+import { useApi } from "../../context/ApiContext";
 
 type Product = {
   _id?: string;
@@ -17,6 +17,9 @@ type Product = {
   sku: string;
   description: string;
   designs?: Design[];
+  fabric?: string;
+  pattern?: string;
+  sizes?: string[];
 };
 
 type Design = {
@@ -54,16 +57,23 @@ export const useProductForm = ({
     quantity: 0,
     sku: "",
     description: "",
+    fabric: "",
+    pattern: "",
+    sizes: [],
   });
 
   // DESIGNS STATE
   const [designs, setDesigns] = useState<DesignForm[]>([]);
 
+  // FABRIC AND PATTERN IMAGE STATE
+  const [fabricImages, setFabricImages] = useState<string[]>([]);
+  const [patternImages, setPatternImages] = useState<string[]>([]);
+
   // LOAD INITIAL VALUES FOR EDIT
   useEffect(() => {
     if (isEditing && editProductData) {
       console.log("Editing product data:", editProductData);
-      
+
       setProduct({
         _id: editProductData._id || "",
         name: editProductData.name || "",
@@ -73,17 +83,20 @@ export const useProductForm = ({
         quantity: editProductData.quantity || 0,
         sku: editProductData.sku || "",
         description: editProductData.description || "",
+        fabric: editProductData.fabric || "",
+        pattern: editProductData.pattern || "",
+        sizes: editProductData.sizes || [],
       });
 
       // Load existing designs from database
       if (editProductData.designs && editProductData.designs.length > 0) {
         console.log("Loading existing designs:", editProductData.designs);
-        
+
         const existingDesigns: DesignForm[] = editProductData.designs.map((design, index) => {
-          const imageUrl = design.imageUrl 
+          const imageUrl = design.imageUrl
             ? (design.imageUrl.startsWith('http') ? design.imageUrl : `${BASE_URL}${design.imageUrl}`)
             : '';
-          
+
           return {
             id: `design-${index}-${Date.now()}`,
             images: imageUrl ? [imageUrl] : [],
@@ -93,12 +106,32 @@ export const useProductForm = ({
             isRemoved: false // NEW: Initialize as not removed
           };
         });
-        
+
         setDesigns(existingDesigns);
         console.log("Processed designs for form:", existingDesigns);
       } else {
         console.log("No designs found in product data");
         setDesigns([]);
+      }
+
+      // Load fabric image if it exists
+      if (editProductData.fabric) {
+        const fabricUrl = editProductData.fabric.startsWith('http')
+          ? editProductData.fabric
+          : `${BASE_URL}${editProductData.fabric}`;
+        setFabricImages([fabricUrl]);
+      } else {
+        setFabricImages([]);
+      }
+
+      // Load pattern image if it exists
+      if (editProductData.pattern) {
+        const patternUrl = editProductData.pattern.startsWith('http')
+          ? editProductData.pattern
+          : `${BASE_URL}${editProductData.pattern}`;
+        setPatternImages([patternUrl]);
+      } else {
+        setPatternImages([]);
       }
     } else {
       resetForm();
@@ -115,11 +148,16 @@ export const useProductForm = ({
       quantity: 0,
       sku: "",
       description: "",
+      fabric: "",
+      pattern: "",
+      sizes: [],
     });
     setDesigns([]);
+    setFabricImages([]);
+    setPatternImages([]);
   };
 
-  const handleChange = (key: keyof Product, value: string | number) => {
+  const handleChange = (key: keyof Product, value: string | number | string[]) => {
     setProduct((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -127,7 +165,7 @@ export const useProductForm = ({
   const markDesignAsRemoved = (designIndex: number) => {
     const updatedDesigns = [...designs];
     const design = updatedDesigns[designIndex];
-    
+
     if (design.isOld) {
       // For existing designs, mark as removed instead of deleting
       updatedDesigns[designIndex] = {
@@ -140,7 +178,7 @@ export const useProductForm = ({
       // For new designs, just remove from array
       updatedDesigns.splice(designIndex, 1);
     }
-    
+
     setDesigns(updatedDesigns);
   };
 
@@ -153,7 +191,7 @@ export const useProductForm = ({
       isOld: false,
       isRemoved: false
     };
-    
+
     setDesigns(prev => [...prev, newDesign]);
   };
 
@@ -174,7 +212,49 @@ export const useProductForm = ({
     if (!result.canceled && result.assets.length > 0) {
       return [result.assets[0].uri];
     }
-    
+
+    return [];
+  };
+
+  // PICK FABRIC IMAGE
+  const pickFabricImage = async (): Promise<string[]> => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permission required", "Camera roll permission is needed.");
+      return [];
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: false,
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets.length > 0) {
+      return [result.assets[0].uri];
+    }
+
+    return [];
+  };
+
+  // PICK PATTERN IMAGE
+  const pickPatternImage = async (): Promise<string[]> => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permission required", "Camera roll permission is needed.");
+      return [];
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: false,
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets.length > 0) {
+      return [result.assets[0].uri];
+    }
+
     return [];
   };
 
@@ -218,10 +298,10 @@ export const useProductForm = ({
     // Process design images - UPDATED: Handle removed designs
     const designUploads: any[] = [];
     const removedDesigns: string[] = []; // Track removed design URLs
-    
+
     if (submittedDesigns && submittedDesigns.length > 0) {
       console.log("Processing designs for submission:", submittedDesigns);
-      
+
       for (let design of submittedDesigns) {
         // Skip designs that are marked as removed
         if (design.isRemoved) {
@@ -233,15 +313,15 @@ export const useProductForm = ({
 
         if (design.images.length > 0) {
           const imageUri = design.images[0];
-          
+
           // Check if it's an existing image or new image
           if (imageUri.includes(BASE_URL) || imageUri.startsWith('http')) {
             // Existing design - use the original image URL
-            const originalUrl = design.originalImageUrl || 
-                              imageUri.replace(BASE_URL, '').replace(/^https?:\/\/[^/]+/, '');
-            
+            const originalUrl = design.originalImageUrl ||
+              imageUri.replace(BASE_URL, '').replace(/^https?:\/\/[^/]+/, '');
+
             console.log("Existing design - using URL:", originalUrl);
-            
+
             designUploads.push({
               image: originalUrl,
               stock: parseInt(design.stock) || 0
@@ -273,7 +353,35 @@ export const useProductForm = ({
     // Calculate total quantity from designs
     const totalQuantity = designUploads.reduce((total, design) => total + design.stock, 0);
 
-    // FINAL PAYLOAD - UPDATED: Include removed designs info
+    // Process fabric image
+    let fabricImageUrl = undefined;
+    if (fabricImages.length > 0) {
+      const fabricUri = fabricImages[0];
+      if (fabricUri.includes(BASE_URL) || fabricUri.startsWith('http')) {
+        // Existing fabric image
+        fabricImageUrl = product.fabric || fabricUri.replace(BASE_URL, '').replace(/^https?:\/\/[^/]+/, '');
+      } else {
+        // New fabric image - compress and upload
+        const compressedFabricImage = await compressImage(fabricUri);
+        fabricImageUrl = compressedFabricImage;
+      }
+    }
+
+    // Process pattern image
+    let patternImageUrl = undefined;
+    if (patternImages.length > 0) {
+      const patternUri = patternImages[0];
+      if (patternUri.includes(BASE_URL) || patternUri.startsWith('http')) {
+        // Existing pattern image
+        patternImageUrl = product.pattern || patternUri.replace(BASE_URL, '').replace(/^https?:\/\/[^/]+/, '');
+      } else {
+        // New pattern image - compress and upload
+        const compressedPatternImage = await compressImage(patternUri);
+        patternImageUrl = compressedPatternImage;
+      }
+    }
+
+    // FINAL PAYLOAD - UPDATED: Include fabric, pattern, sizes, and removed designs info
     const payload = {
       name: product.name,
       brand: product.brand,
@@ -283,13 +391,16 @@ export const useProductForm = ({
       description: product.description,
       sku: product.sku,
       designs: designUploads,
-      removedDesigns: removedDesigns.length > 0 ? removedDesigns : undefined // NEW: Send removed designs to backend
+      removedDesigns: removedDesigns.length > 0 ? removedDesigns : undefined, // NEW: Send removed designs to backend
+      fabric: fabricImageUrl,
+      pattern: patternImageUrl,
+      sizes: product.sizes && product.sizes.length > 0 ? product.sizes : undefined,
     };
 
     console.log("Submitting payload:", payload);
     console.log("Product ID:", product._id);
 
-    const url = isEditing 
+    const url = isEditing
       ? `${BASE_URL}/products/${product._id}`
       : `${BASE_URL}/products`;
 
@@ -338,8 +449,14 @@ export const useProductForm = ({
   return {
     product,
     designs,
+    fabricImages,
+    patternImages,
     handleChange,
     pickSingleImage,
+    pickFabricImage,
+    pickPatternImage,
+    setFabricImages,
+    setPatternImages,
     handleSubmit,
     resetForm,
     setDesigns,

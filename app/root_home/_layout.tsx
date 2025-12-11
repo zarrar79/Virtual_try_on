@@ -58,6 +58,26 @@ export default function DrawerLayout() {
                 }}
             />
             <Drawer.Screen
+                name="tryYourDress"
+                options={{
+                    drawerLabel: 'Try Your Dress',
+                    title: 'Try Your Dress',
+                    drawerIcon: ({ focused, color, size }) => (
+                        <Ionicons name={focused ? 'shirt' : 'shirt-outline'} size={size} color={color} />
+                    ),
+                }}
+            />
+            <Drawer.Screen
+                name="ProductCustomization"
+                options={{
+                    drawerLabel: 'Product Customization',
+                    title: 'Product Customization',
+                    drawerIcon: ({ focused, color, size }) => (
+                        <Ionicons name={focused ? 'color-palette' : 'color-palette-outline'} size={size} color={color} />
+                    ),
+                }}
+            />
+            <Drawer.Screen
                 name="cart"
                 options={{
                     drawerLabel: 'Cart',

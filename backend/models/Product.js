@@ -13,7 +13,11 @@ const ProductSchema = new mongoose.Schema({
   brand: { type: String, required: true },
   quantity: { type: Number, required: true },
   category: { type: String, required: true },
-  designs: [DesignSchema]
+  designs: [DesignSchema],
+  // New optional fields
+  fabric: { type: String, trim: true },
+  pattern: { type: String, trim: true },
+  sizes: [{ type: String, enum: ['S', 'M', 'L'] }]
 });
 
 const Product = mongoose.model('Product', ProductSchema);

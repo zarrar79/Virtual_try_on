@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, ScrollView, TextInput, Modal } from 'react-native';
+import { Image, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import styles from '../CSS/tryYourDress';
 import { Design, Product, SelectedDesign } from '../types/product';
-import styles from '../CSS/ProductCustomization.styles';
 
 interface OrderModalProps {
   visible: boolean;
@@ -82,7 +82,7 @@ const DesignOrderItem: React.FC<{
     <View style={styles.selectedDesignInfo}>
       <Text style={styles.designLabel}>Design {selectedDesign.designIndex + 1}</Text>
       <Text style={styles.stockText}>Available: {design?.stock || 0}</Text>
-      
+
       <QuantityControls
         quantity={selectedDesign.quantity}
         onDecrease={() => onUpdateQuantity(selectedDesign.imageUrl, selectedDesign.quantity - 1)}
